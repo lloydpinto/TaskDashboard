@@ -517,7 +517,7 @@
       .tr.ov-r {
         border-left: 3px solid var(--ER);
       }
-      .tr.pinned {
+      .tr.pinned-r {
         border-left: 3px solid var(--WA);
       }
       .chk {
@@ -610,27 +610,27 @@
         background: rgba(34, 197, 94, 0.1);
         color: var(--OK);
       }
-      .sb {
+      .sb2 {
         padding: 1px 8px;
         border-radius: 20px;
         font-size: 9px;
         font-weight: 600;
       }
-      .sb-p {
+      .sb2-p {
         background: rgba(245, 158, 11, 0.1);
         color: var(--WA);
       }
-      .sb-i {
+      .sb2-i {
         background: rgba(79, 70, 229, 0.1);
         color: var(--P);
       }
-      .sb-c {
+      .sb2-c {
         background: rgba(34, 197, 94, 0.1);
         color: var(--OK);
       }
-      .pin-badge {
+      .pin-ic {
         color: var(--WA);
-        font-size: 11px;
+        font-size: 10px;
       }
       .ta {
         display: flex;
@@ -766,7 +766,7 @@
         background: rgba(239, 68, 68, 0.1);
         color: var(--ER);
       }
-      .at {
+      .at2 {
         font-size: 11px;
         margin-bottom: 1px;
       }
@@ -774,7 +774,7 @@
         font-size: 9px;
         color: var(--txm);
       }
-      .pr {
+      .pr2 {
         display: flex;
         align-items: center;
         gap: 7px;
@@ -783,7 +783,7 @@
         cursor: pointer;
         transition: var(--tr);
       }
-      .pr:hover {
+      .pr2:hover {
         background: var(--bg);
       }
       .pdot {
@@ -791,11 +791,11 @@
         height: 8px;
         border-radius: 50%;
       }
-      .pn {
+      .pn2 {
         flex: 1;
         font-size: 11px;
       }
-      .pc {
+      .pc2 {
         font-size: 10px;
         color: var(--txm);
         background: var(--bg);
@@ -804,7 +804,7 @@
       }
       .ndrop {
         position: fixed;
-        top: calc(var(--hh)+4px);
+        top: calc(var(--hh) + 4px);
         right: 12px;
         width: 340px;
         background: var(--card);
@@ -900,6 +900,10 @@
         background: rgba(79, 70, 229, 0.1);
         color: var(--P);
       }
+      .ni.created {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
       .nt2 {
         flex: 1;
         min-width: 0;
@@ -924,7 +928,7 @@
         margin-bottom: 6px;
         display: block;
       }
-      .ov {
+      .ov2 {
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.45);
@@ -936,7 +940,7 @@
         pointer-events: none;
         transition: var(--tr);
       }
-      .ov.open {
+      .ov2.open {
         opacity: 1;
         pointer-events: all;
       }
@@ -951,7 +955,7 @@
         transform: scale(0.94);
         transition: var(--tr);
       }
-      .ov.open .modal {
+      .ov2.open .modal {
         transform: scale(1);
       }
       .mh {
@@ -1031,13 +1035,13 @@
         min-height: 70px;
         resize: vertical;
       }
-      .fr {
+      .fr2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 11px;
       }
       @media (max-width: 480px) {
-        .fr {
+        .fr2 {
           grid-template-columns: 1fr;
         }
       }
@@ -1362,6 +1366,7 @@
   </head>
   <body>
     <div class="app">
+      <!-- SIDEBAR -->
       <aside class="sidebar" id="sidebar">
         <div class="sb-brand">
           <div class="sb-logo"><i class="fas fa-layer-group"></i></div>
@@ -1388,6 +1393,14 @@
             </button>
             <button
               class="nb"
+              data-page="upcoming"
+              onclick="go('upcoming', this)"
+            >
+              <i class="fas fa-calendar-week"></i
+              ><span class="nt">Upcoming</span>
+            </button>
+            <button
+              class="nb"
               data-page="overdue"
               onclick="go('overdue', this)"
             >
@@ -1408,13 +1421,29 @@
               <i class="fas fa-check-double"></i
               ><span class="nt">Completed</span>
             </button>
+            <button class="nb" data-page="pinned" onclick="go('pinned', this)">
+              <i class="fas fa-thumbtack"></i><span class="nt">Pinned</span
+              ><span class="nc" id="nc-pin">0</span>
+            </button>
           </div>
           <div class="ns">
             <div class="nsl">CATEGORIES</div>
             <div id="sbC"></div>
+            <button class="nb" onclick="openCatM()">
+              <i class="fas fa-plus"></i><span class="nt">New Category</span>
+            </button>
+          </div>
+          <div class="ns">
+            <div class="nsl">PROJECTS</div>
+            <div id="sbP"></div>
+            <button class="nb" onclick="openProjM()">
+              <i class="fas fa-plus"></i><span class="nt">New Project</span>
+            </button>
           </div>
         </nav>
       </aside>
+
+      <!-- RIGHT SIDE -->
       <div class="right">
         <header class="header">
           <button class="hb" onclick="toggleSB()">
@@ -1422,7 +1451,11 @@
           </button>
           <div class="sw">
             <i class="fas fa-search"></i
-            ><input id="srch" placeholder="Search…" oninput="onSrch()" />
+            ><input
+              id="srch"
+              placeholder="Search… (Ctrl+K)"
+              oninput="onSrch()"
+            />
           </div>
           <div class="hr">
             <button class="hb" onclick="toggleTheme()">
@@ -1435,9 +1468,14 @@
             <button class="hb" onclick="openSettings()">
               <i class="fas fa-cog"></i>
             </button>
-            <div class="av">U</div>
+            <button class="hb" onclick="openEI()">
+              <i class="fas fa-database"></i>
+            </button>
+            <div class="av">JD</div>
           </div>
         </header>
+
+        <!-- NOTIFICATION DROPDOWN -->
         <div class="ndrop" id="nDrop">
           <div class="ndh">
             <h3>
@@ -1448,19 +1486,21 @@
               >Notifications
             </h3>
             <div class="ndas">
-              <button class="ndl" onclick="markAll()">Read all</button
-              ><button class="ndl er" onclick="clearR()">Clear</button>
+              <button class="ndl" onclick="markAll()">Read all</button>
+              <button class="ndl er" onclick="clearR()">Clear</button>
             </div>
           </div>
           <div class="ndls" id="nList"></div>
         </div>
+
+        <!-- CONTENT -->
         <div class="content">
-          <!-- DASHBOARD -->
+          <!-- DASHBOARD PAGE -->
           <div class="page active" id="page-dashboard">
             <div class="ph">
               <div class="phl">
-                <h1 id="greet">Hello 👋</h1>
-                <p>Your task overview</p>
+                <h1 id="greet">Hello!</h1>
+                <p>Your task overview for <strong id="tDate"></strong></p>
               </div>
               <div class="phr">
                 <button class="btn btn-g" onclick="loadAll()">
@@ -1490,7 +1530,7 @@
                 <div class="sci sio"><i class="fas fa-spinner"></i></div>
                 <div>
                   <div class="scv" id="s-p">0</div>
-                  <div class="scl">Progress</div>
+                  <div class="scl">In Progress</div>
                 </div>
               </div>
               <div class="sc">
@@ -1502,6 +1542,20 @@
                   <div class="scl">Overdue</div>
                 </div>
               </div>
+              <div class="sc">
+                <div class="sci sic"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                  <div class="scv" id="s-td">0</div>
+                  <div class="scl">Due Today</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sip"><i class="fas fa-fire"></i></div>
+                <div>
+                  <div class="scv" id="s-hp">0</div>
+                  <div class="scl">High Priority</div>
+                </div>
+              </div>
             </div>
             <div class="dg" style="flex: 1; min-height: 0">
               <div class="card" style="min-height: 0">
@@ -1509,9 +1563,9 @@
                   <h2>📋 Tasks</h2>
                   <div class="fb">
                     <select id="d-st" onchange="rDash()">
-                      <option value="">All</option>
+                      <option value="">All Status</option>
                       <option value="pending">Pending</option>
-                      <option value="in_progress">Progress</option>
+                      <option value="in_progress">In Progress</option>
                       <option value="completed">Done</option>
                     </select>
                     <select id="d-pr" onchange="rDash()">
@@ -1569,15 +1623,19 @@
                       <div class="rs">
                         <div class="rsi">
                           <span class="dot" style="background: var(--OK)"></span
-                          >Done: <b id="rD">0</b>
+                          ><span>Done: <b id="rD">0</b></span>
+                        </div>
+                        <div class="rsi">
+                          <span class="dot" style="background: var(--P)"></span
+                          ><span>Progress: <b id="rI">0</b></span>
                         </div>
                         <div class="rsi">
                           <span class="dot" style="background: var(--WA)"></span
-                          >Pending: <b id="rPn">0</b>
+                          ><span>Pending: <b id="rPn">0</b></span>
                         </div>
                         <div class="rsi">
                           <span class="dot" style="background: var(--ER)"></span
-                          >Overdue: <b id="rO">0</b>
+                          ><span>Overdue: <b id="rO">0</b></span>
                         </div>
                       </div>
                     </div>
@@ -1594,26 +1652,36 @@
                     <div id="cP"></div>
                   </div>
                 </div>
+                <div class="card">
+                  <div class="ch"><h2>🕑 Activity</h2></div>
+                  <div class="cb" style="padding: 8px 12px">
+                    <div class="al" id="aList"></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-          <!-- ALL -->
+
+          <!-- ALL TASKS PAGE -->
           <div class="page" id="page-all">
             <div class="ph">
-              <div class="phl"><h1>All Tasks</h1></div>
+              <div class="phl">
+                <h1>All Tasks</h1>
+                <p>View and manage every task</p>
+              </div>
               <div class="phr">
                 <button class="btn btn-p" onclick="openTM()">
                   <i class="fas fa-plus"></i> New Task
                 </button>
               </div>
             </div>
-            <div class="card" style="flex: 1">
+            <div class="card" style="flex: 1; min-height: 0">
               <div class="ch">
                 <div class="fb">
                   <select id="a-st" onchange="rAll()">
-                    <option value="">All</option>
+                    <option value="">All Status</option>
                     <option value="pending">Pending</option>
-                    <option value="in_progress">Progress</option>
+                    <option value="in_progress">In Progress</option>
                     <option value="completed">Done</option>
                   </select>
                   <select id="a-pr" onchange="rAll()">
@@ -1623,20 +1691,33 @@
                     <option value="low">Low</option>
                   </select>
                   <select id="a-ca" onchange="rAll()">
-                    <option value="">All Cat</option>
+                    <option value="">All Categories</option>
+                  </select>
+                  <select id="a-pj" onchange="rAll()">
+                    <option value="">All Projects</option>
+                  </select>
+                  <select id="a-so" onchange="rAll()">
+                    <option value="created_at">Newest</option>
+                    <option value="due_date">Due Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="title">Title</option>
                   </select>
                 </div>
               </div>
               <div class="tl" id="aL" style="flex: 1"></div>
             </div>
           </div>
-          <!-- TODAY -->
+
+          <!-- TODAY PAGE -->
           <div class="page" id="page-today">
             <div class="ph">
-              <div class="phl"><h1>Due Today</h1></div>
+              <div class="phl">
+                <h1>Due Today</h1>
+                <p>Tasks for today</p>
+              </div>
               <div class="phr">
                 <button class="btn btn-p" onclick="openTM()">
-                  <i class="fas fa-plus"></i>
+                  <i class="fas fa-plus"></i> New Task
                 </button>
               </div>
             </div>
@@ -1644,28 +1725,81 @@
               <div class="tl" id="tL" style="flex: 1"></div>
             </div>
           </div>
-          <!-- OVERDUE -->
+
+          <!-- UPCOMING PAGE -->
+          <div class="page" id="page-upcoming">
+            <div class="ph">
+              <div class="phl">
+                <h1>Upcoming</h1>
+                <p>Next 7 days</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="uL" style="flex: 1"></div>
+            </div>
+          </div>
+
+          <!-- OVERDUE PAGE -->
           <div class="page" id="page-overdue">
             <div class="ph">
-              <div class="phl"><h1>⚠️ Overdue</h1></div>
+              <div class="phl">
+                <h1>Overdue Tasks</h1>
+                <p>Past due date</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
             </div>
             <div class="card" style="flex: 1">
               <div class="tl" id="oL" style="flex: 1"></div>
             </div>
           </div>
-          <!-- COMPLETED -->
+
+          <!-- COMPLETED PAGE -->
           <div class="page" id="page-completed">
             <div class="ph">
-              <div class="phl"><h1>✅ Completed</h1></div>
+              <div class="phl">
+                <h1>Completed</h1>
+                <p>Finished tasks</p>
+              </div>
             </div>
             <div class="card" style="flex: 1">
               <div class="tl" id="cL" style="flex: 1"></div>
             </div>
           </div>
+
+          <!-- PINNED PAGE -->
+          <div class="page" id="page-pinned">
+            <div class="ph">
+              <div class="phl">
+                <h1>Pinned Tasks</h1>
+                <p>Your pinned tasks</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="pnL" style="flex: 1"></div>
+            </div>
+          </div>
         </div>
+        <!-- /content -->
       </div>
+      <!-- /right -->
     </div>
-    <!-- ALERT -->
+    <!-- /app -->
+
+    <!-- ALERT POPUP -->
     <div class="ap" id="aP">
       <div class="ap-str" id="apS"></div>
       <div class="ap-b">
@@ -1681,16 +1815,18 @@
       </div>
       <div class="ap-pg"><div class="ap-bar" id="apBar"></div></div>
       <div class="ap-ft">
-        <span class="ap-tm" id="apTm">Now</span>
+        <span class="ap-tm" id="apTm">Just now</span>
         <div class="ap-ac">
-          <button class="ap-btn snz" id="apSnz" onclick="closeAP()">
-            <i class="fas fa-clock"></i> Snooze</button
-          ><button class="ap-btn view" onclick="closeAP()">Dismiss</button>
+          <button class="ap-btn snz" id="apSnzBtn" onclick="doSnooze()">
+            <i class="fas fa-clock"></i> Snooze
+          </button>
+          <button class="ap-btn view" onclick="closeAP()">Dismiss</button>
         </div>
       </div>
     </div>
+
     <!-- TASK MODAL -->
-    <div class="ov" id="tOv">
+    <div class="ov2" id="tOv">
       <div class="modal">
         <div class="mh">
           <h2 id="mTi">New Task</h2>
@@ -1702,27 +1838,35 @@
           <input type="hidden" id="f-id" />
           <div class="fg">
             <label class="fl">Title <span>*</span></label
-            ><input class="fi" id="f-title" />
+            ><input
+              class="fi"
+              id="f-title"
+              placeholder="What needs to be done?"
+            />
           </div>
           <div class="fg">
             <label class="fl">Description</label
-            ><textarea class="fta" id="f-desc"></textarea>
+            ><textarea
+              class="fta"
+              id="f-desc"
+              placeholder="Add details..."
+            ></textarea>
           </div>
-          <div class="fr">
+          <div class="fr2">
             <div class="fg">
               <label class="fl">Category</label
               ><select class="fs" id="f-cat"></select>
             </div>
             <div class="fg">
-              <label class="fl">Priority</label
-              ><select class="fs" id="f-pri">
+              <label class="fl">Priority</label>
+              <select class="fs" id="f-pri">
                 <option value="low">🟢 Low</option>
                 <option value="medium" selected>🟡 Medium</option>
                 <option value="high">🔴 High</option>
               </select>
             </div>
           </div>
-          <div class="fr">
+          <div class="fr2">
             <div class="fg">
               <label class="fl">Due Date</label
               ><input type="date" class="fi" id="f-date" />
@@ -1732,49 +1876,106 @@
               ><input type="time" class="fi" id="f-time" />
             </div>
           </div>
-          <div class="fr">
+          <div class="fr2">
             <div class="fg">
-              <label class="fl">Status</label
-              ><select class="fs" id="f-status">
-                <option value="pending">Pending</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Done</option>
+              <label class="fl">Status</label>
+              <select class="fs" id="f-status">
+                <option value="pending">⏳ Pending</option>
+                <option value="in_progress">🔄 In Progress</option>
+                <option value="completed">✅ Done</option>
               </select>
             </div>
             <div class="fg">
-              <label class="fl">Reminder</label
-              ><select class="fs" id="f-rem">
-                <option value="5">5m</option>
-                <option value="10">10m</option>
-                <option value="15">15m</option>
-                <option value="30" selected>30m</option>
-                <option value="60">1h</option>
-                <option value="1440">1d</option>
+              <label class="fl">Reminder</label>
+              <select class="fs" id="f-rem">
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="30" selected>30 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="1440">1 day</option>
               </select>
             </div>
           </div>
-          <div class="fg">
-            <label class="fl">Assigned To</label><input class="fi" id="f-asn" />
+          <div class="fr2">
+            <div class="fg">
+              <label class="fl">Project</label
+              ><select class="fs" id="f-proj">
+                <option value="">None</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Assigned To</label
+              ><input class="fi" id="f-asn" placeholder="Name" />
+            </div>
+          </div>
+          <div class="fr2">
+            <div class="fg">
+              <label class="fl">Progress %</label
+              ><input
+                type="number"
+                class="fi"
+                id="f-prog"
+                min="0"
+                max="100"
+                value="0"
+              />
+            </div>
+            <div class="fg">
+              <label class="fl">Est. Hours</label
+              ><input
+                type="number"
+                class="fi"
+                id="f-est"
+                min="0"
+                step="0.5"
+                value="0"
+              />
+            </div>
+          </div>
+          <div class="fg" style="display: flex; align-items: center; gap: 8px">
+            <input
+              type="checkbox"
+              id="f-pin"
+              style="width: 16px; height: 16px; cursor: pointer"
+            />
+            <label for="f-pin" style="font-size: 13px; cursor: pointer"
+              ><i
+                class="fas fa-thumbtack"
+                style="margin-right: 4px; color: var(--WA)"
+              ></i
+              >Pin this task</label
+            >
           </div>
           <div class="fg">
-            <label class="fl">Tags</label
-            ><input class="fi" id="f-tags" placeholder="comma separated" />
+            <label class="fl"
+              >Tags
+              <small style="color: var(--txm); font-weight: 400"
+                >(comma separated)</small
+              ></label
+            ><input class="fi" id="f-tags" placeholder="urgent, client" />
           </div>
           <div class="fg">
             <label class="fl">Notes</label
-            ><textarea class="fta" id="f-notes"></textarea>
+            ><textarea
+              class="fta"
+              id="f-notes"
+              placeholder="Additional notes..."
+            ></textarea>
           </div>
         </div>
         <div class="mf">
-          <button class="btn btn-g" onclick="closeTM()">Cancel</button
-          ><button class="btn btn-p" onclick="saveT()">
-            <i class="fas fa-save"></i> Save
+          <button class="btn btn-g" onclick="closeTM()">Cancel</button>
+          <button class="btn btn-p" onclick="saveT()">
+            <i class="fas fa-save"></i> Save Task
           </button>
         </div>
       </div>
     </div>
-    <!-- CAT MODAL -->
-    <div class="ov" id="cOv">
+
+    <!-- CATEGORY MODAL -->
+    <div class="ov2" id="cOv">
       <div class="modal" style="max-width: 340px">
         <div class="mh">
           <h2>New Category</h2>
@@ -1784,7 +1985,8 @@
         </div>
         <div class="mb">
           <div class="fg">
-            <label class="fl">Name</label><input class="fi" id="cn" />
+            <label class="fl">Name <span>*</span></label
+            ><input class="fi" id="cn" placeholder="Category name" />
           </div>
           <div class="fg">
             <label class="fl">Color</label
@@ -1793,7 +1995,7 @@
               class="fi"
               id="cc"
               value="#4f46e5"
-              style="height: 40px"
+              style="height: 40px; padding: 4px"
             />
           </div>
         </div>
@@ -1803,11 +2005,56 @@
         </div>
       </div>
     </div>
-    <!-- SETTINGS -->
-    <div class="ov" id="sOv">
-      <div class="modal" style="max-width: 480px">
+
+    <!-- PROJECT MODAL -->
+    <div class="ov2" id="pOv">
+      <div class="modal" style="max-width: 360px">
         <div class="mh">
-          <h2>⚙️ Settings</h2>
+          <h2>New Project</h2>
+          <button class="mc" onclick="closePM()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb">
+          <div class="fg">
+            <label class="fl">Name <span>*</span></label
+            ><input class="fi" id="proj-name" placeholder="Project name" />
+          </div>
+          <div class="fg">
+            <label class="fl">Color</label
+            ><input
+              type="color"
+              class="fi"
+              id="proj-color"
+              value="#0ea5e9"
+              style="height: 40px; padding: 4px"
+            />
+          </div>
+          <div class="fg">
+            <label class="fl">Description</label
+            ><textarea
+              class="fta"
+              id="proj-desc"
+              style="min-height: 60px"
+              placeholder="Description..."
+            ></textarea>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closePM()">Cancel</button
+          ><button class="btn btn-p" onclick="saveProj()">Save</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="ov2" id="sOv">
+      <div class="modal" style="max-width: 500px">
+        <div class="mh">
+          <h2>
+            <i class="fas fa-cog" style="margin-right: 7px; color: var(--P)"></i
+            >Settings
+          </h2>
           <button class="mc" onclick="closeSM()">
             <i class="fas fa-times"></i>
           </button>
@@ -1817,8 +2064,8 @@
             <h3>🔔 Notifications</h3>
             <div class="set-row">
               <div class="set-info">
-                <h4>Sound</h4>
-                <p>Play alert sound</p>
+                <h4>Sound Alerts</h4>
+                <p>Play chime sound</p>
               </div>
               <label class="toggle"
                 ><input
@@ -1830,8 +2077,8 @@
             </div>
             <div class="set-row">
               <div class="set-info">
-                <h4>Popup</h4>
-                <p>In-app popup alerts</p>
+                <h4>Popup Alerts</h4>
+                <p>Show in-app popup</p>
               </div>
               <label class="toggle"
                 ><input
@@ -1843,8 +2090,8 @@
             </div>
             <div class="set-row">
               <div class="set-info">
-                <h4>Browser</h4>
-                <p>OS notifications</p>
+                <h4>Browser Notifications</h4>
+                <p>OS-level notifications</p>
               </div>
               <label class="toggle"
                 ><input
@@ -1855,7 +2102,10 @@
               ></label>
             </div>
             <div class="set-row">
-              <div class="set-info"><h4>Poll Interval</h4></div>
+              <div class="set-info">
+                <h4>Poll Interval</h4>
+                <p>Check for notifications every</p>
+              </div>
               <select
                 class="fs"
                 id="s-interval"
@@ -1863,58 +2113,71 @@
                 onchange="saveSet()"
               >
                 <option value="15">15s</option>
-                <option value="30">30s</option>
+                <option value="30" selected>30s</option>
                 <option value="60">60s</option>
+                <option value="120">2 min</option>
               </select>
             </div>
           </div>
           <div class="set-sec">
-            <h3>⏰ Default Reminders</h3>
+            <h3>⏰ Default Reminders (by Priority)</h3>
             <div class="set-row">
-              <div class="set-info"><h4>🔴 High</h4></div>
+              <div class="set-info">
+                <h4>🔴 High Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
               <select
                 class="fs"
                 id="s-rh"
-                style="width: 100px"
+                style="width: 110px"
                 onchange="saveSet()"
               >
-                <option value="5">5m</option>
-                <option value="10">10m</option>
-                <option value="15">15m</option>
-                <option value="30">30m</option>
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15" selected>15 min</option>
+                <option value="30">30 min</option>
               </select>
             </div>
             <div class="set-row">
-              <div class="set-info"><h4>🟡 Medium</h4></div>
+              <div class="set-info">
+                <h4>🟡 Medium Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
               <select
                 class="fs"
                 id="s-rm"
-                style="width: 100px"
+                style="width: 110px"
                 onchange="saveSet()"
               >
-                <option value="15">15m</option>
-                <option value="30">30m</option>
-                <option value="60">1h</option>
+                <option value="15">15 min</option>
+                <option value="30" selected>30 min</option>
+                <option value="60">1 hour</option>
               </select>
             </div>
             <div class="set-row">
-              <div class="set-info"><h4>🟢 Low</h4></div>
+              <div class="set-info">
+                <h4>🟢 Low Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
               <select
                 class="fs"
                 id="s-rl"
-                style="width: 100px"
+                style="width: 110px"
                 onchange="saveSet()"
               >
-                <option value="30">30m</option>
-                <option value="60">1h</option>
-                <option value="120">2h</option>
+                <option value="30">30 min</option>
+                <option value="60" selected>1 hour</option>
+                <option value="120">2 hours</option>
               </select>
             </div>
           </div>
           <div class="set-sec">
-            <h3>🪟 Popup Duration</h3>
+            <h3>🪟 Popup Duration (by Priority)</h3>
             <div class="set-row">
-              <div class="set-info"><h4>🔴 High</h4></div>
+              <div class="set-info">
+                <h4>🔴 High</h4>
+                <p>Seconds popup stays on screen</p>
+              </div>
               <select
                 class="fs"
                 id="s-dh"
@@ -1922,13 +2185,16 @@
                 onchange="saveSet()"
               >
                 <option value="10">10s</option>
-                <option value="12">12s</option>
+                <option value="12" selected>12s</option>
                 <option value="15">15s</option>
-                <option value="0">∞</option>
+                <option value="0">Forever</option>
               </select>
             </div>
             <div class="set-row">
-              <div class="set-info"><h4>🟡 Medium</h4></div>
+              <div class="set-info">
+                <h4>🟡 Medium</h4>
+                <p>Seconds popup stays on screen</p>
+              </div>
               <select
                 class="fs"
                 id="s-dm"
@@ -1936,12 +2202,15 @@
                 onchange="saveSet()"
               >
                 <option value="5">5s</option>
-                <option value="8">8s</option>
+                <option value="8" selected>8s</option>
                 <option value="10">10s</option>
               </select>
             </div>
             <div class="set-row">
-              <div class="set-info"><h4>🟢 Low</h4></div>
+              <div class="set-info">
+                <h4>🟢 Low</h4>
+                <p>Seconds popup stays on screen</p>
+              </div>
               <select
                 class="fs"
                 id="s-dl"
@@ -1949,8 +2218,28 @@
                 onchange="saveSet()"
               >
                 <option value="3">3s</option>
-                <option value="5">5s</option>
+                <option value="5" selected>5s</option>
                 <option value="8">8s</option>
+              </select>
+            </div>
+          </div>
+          <div class="set-sec">
+            <h3>💤 Snooze</h3>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Snooze Duration</h4>
+                <p>How long to snooze reminders</p>
+              </div>
+              <select
+                class="fs"
+                id="s-snz"
+                style="width: 110px"
+                onchange="saveSet()"
+              >
+                <option value="5">5 min</option>
+                <option value="10" selected>10 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
               </select>
             </div>
           </div>
@@ -1960,181 +2249,1532 @@
         </div>
       </div>
     </div>
+
+    <!-- EXPORT/IMPORT MODAL -->
+    <div class="ov2" id="eOv">
+      <div class="modal" style="max-width: 380px">
+        <div class="mh">
+          <h2>
+            <i
+              class="fas fa-database"
+              style="margin-right: 7px; color: var(--P)"
+            ></i
+            >Data
+          </h2>
+          <button class="mc" onclick="closeEI()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div
+          class="mb"
+          style="display: flex; flex-direction: column; gap: 12px"
+        >
+          <div style="background: var(--bg); border-radius: 9px; padding: 14px">
+            <h3 style="font-size: 13px; margin-bottom: 6px">
+              <i
+                class="fas fa-download"
+                style="color: var(--OK); margin-right: 6px"
+              ></i
+              >Export
+            </h3>
+            <p style="color: var(--txm); font-size: 11px; margin-bottom: 10px">
+              Download all tasks as backup
+            </p>
+            <button class="btn btn-ok btn-sm" onclick="doExport()">
+              <i class="fas fa-download"></i> Export Now
+            </button>
+          </div>
+          <div style="background: var(--bg); border-radius: 9px; padding: 14px">
+            <h3 style="font-size: 13px; margin-bottom: 6px">
+              <i
+                class="fas fa-upload"
+                style="color: var(--P); margin-right: 6px"
+              ></i
+              >Import
+            </h3>
+            <p style="color: var(--txm); font-size: 11px; margin-bottom: 10px">
+              Restore from JSON file
+            </p>
+            <input
+              type="file"
+              id="impF"
+              accept=".json"
+              style="display: none"
+              onchange="doImport(event)"
+            />
+            <button
+              class="btn btn-p btn-sm"
+              onclick="document.getElementById('impF').click()"
+            >
+              <i class="fas fa-upload"></i> Choose File
+            </button>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closeEI()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOAST CONTAINER -->
     <div class="tw" id="tw"></div>
+
     <script>
-      /* ═══════ GLOBALS ═══════ */
-      const A='/api'; // RELATIVE path — works on Vercel!
-      let allT=[],cats=[],stats={},notifs=[],settings={};
-      let cur='dashboard',knownN=new Set(),aQ=[],aSh=false,aTimer=null,pollTimer=null;
+      // ═══════════════════════════════════════════
+      // GLOBALS
+      // ═══════════════════════════════════════════
+      var API = "/api";
+      var allT = [],
+        cats = [],
+        projs = [],
+        stats = {},
+        notifs = [],
+        settings = {};
+      var curPage = "dashboard";
+      var knownN = new Set();
+      var alertQueue = [],
+        alertShowing = false,
+        alertTimer = null,
+        pollTimer = null;
+      var currentAlertTaskId = null;
 
-      document.addEventListener('DOMContentLoaded',()=>{setGreet();loadTheme();loadAll();
-      if('Notification' in window&&Notification.permission==='default')Notification.requestPermission();});
+      // ═══════════════════════════════════════════
+      // INIT
+      // ═══════════════════════════════════════════
+      document.addEventListener("DOMContentLoaded", function () {
+        setGreet();
+        loadTheme();
+        loadAll();
+        reqNotifPerm();
+      });
 
-      async function loadAll(){await Promise.all([fT(),fC(),fS(),fN(),fSet()]);render();renderSB();}
+      async function loadAll() {
+        await Promise.all([fT(), fC(), fP(), fS(), fN(), fSet()]);
+        render();
+        renderSB();
+        renderAct();
+      }
 
-      async function api(p,m='GET',b=null){try{const o={method:m,headers:{'Content-Type':'application/json'}};
-      if(b)o.body=JSON.stringify(b);const r=await fetch(A+p,o);return await r.json();}catch(e){console.error(e);toast('Error','er');return null;}}
-      async function fT(){allT=await api('/tasks?sort=created_at&order=desc')||[];}
-      async function fC(){cats=await api('/categories')||[];}
-      async function fS(){stats=await api('/statistics')||{};}
-      async function fN(){notifs=await api('/notifications')||[];updateBdg();renderNL();}
-      async function fSet(){settings=await api('/settings')||{};
-      $('s-sound').checked=settings.sound_enabled!==0;$('s-popup').checked=settings.popup_enabled!==0;
-      $('s-browser').checked=settings.browser_notif_enabled!==0;$('s-interval').value=settings.check_interval_secs||30;
-      $('s-rh').value=settings.default_reminder_high||15;$('s-rm').value=settings.default_reminder_medium||30;$('s-rl').value=settings.default_reminder_low||60;
-      $('s-dh').value=settings.popup_duration_high||12;$('s-dm').value=settings.popup_duration_medium||8;$('s-dl').value=settings.popup_duration_low||5;
-      startPoll();}
+      // ═══════════════════════════════════════════
+      // API
+      // ═══════════════════════════════════════════
+      async function apiCall(path, method, body) {
+        method = method || "GET";
+        try {
+          var opts = {
+            method: method,
+            headers: { "Content-Type": "application/json" },
+          };
+          if (body) {
+            opts.body = JSON.stringify(body);
+          }
+          var res = await fetch(API + path, opts);
+          return await res.json();
+        } catch (e) {
+          console.error(e);
+          toast("Connection error", "er");
+          return null;
+        }
+      }
 
-      async function saveSet(){const d={sound_enabled:$('s-sound').checked?1:0,popup_enabled:$('s-popup').checked?1:0,
-      browser_notif_enabled:$('s-browser').checked?1:0,check_interval_secs:+$('s-interval').value,
-      default_reminder_high:+$('s-rh').value,default_reminder_medium:+$('s-rm').value,default_reminder_low:+$('s-rl').value,
-      popup_duration_high:+$('s-dh').value,popup_duration_medium:+$('s-dm').value,popup_duration_low:+$('s-dl').value};
-      settings=await api('/settings','PUT',d)||settings;startPoll();toast('Settings saved','ok');}
+      async function fT() {
+        allT = (await apiCall("/tasks?sort=created_at&order=desc")) || [];
+      }
+      async function fC() {
+        cats = (await apiCall("/categories")) || [];
+      }
+      async function fP() {
+        projs = (await apiCall("/projects")) || [];
+      }
+      async function fS() {
+        stats = (await apiCall("/statistics")) || {};
+      }
+      async function fN() {
+        notifs = (await apiCall("/notifications")) || [];
+        updateBdg();
+        renderNL();
+      }
+      async function fSet() {
+        settings = (await apiCall("/settings")) || {};
+        gid("s-sound").checked = settings.sound_enabled !== 0;
+        gid("s-popup").checked = settings.popup_enabled !== 0;
+        gid("s-browser").checked = settings.browser_notif_enabled !== 0;
+        setSelVal("s-interval", settings.check_interval_secs || 30);
+        setSelVal("s-rh", settings.default_reminder_high || 15);
+        setSelVal("s-rm", settings.default_reminder_medium || 30);
+        setSelVal("s-rl", settings.default_reminder_low || 60);
+        setSelVal("s-dh", settings.popup_duration_high || 12);
+        setSelVal("s-dm", settings.popup_duration_medium || 8);
+        setSelVal("s-dl", settings.popup_duration_low || 5);
+        setSelVal("s-snz", settings.auto_snooze_mins || 10);
+        startPoll();
+      }
 
-      function startPoll(){if(pollTimer)clearInterval(pollTimer);pollTimer=setInterval(pollN,(settings.check_interval_secs||30)*1000);}
-      async function pollN(){const nw=await api('/notifications/new')||[];const fresh=nw.filter(n=>!knownN.has(n.id));
-      fresh.forEach(n=>{knownN.add(n.id);aQ.push(n);});if(fresh.length){await fN();processQ();}}
-      function processQ(){if(aSh||!aQ.length)return;const n=aQ.shift();const pri=n.priority||'medium';if(settings.popup_enabled!==0)showAP(n,pri);}
+      function setSelVal(id, val) {
+        var el = gid(id);
+        if (el) {
+          el.value = val;
+        }
+      }
 
-      function showAP(n,pri){aSh=true;clearTimeout(aTimer);
-      const cfg={overdue:{t:'⚠️ OVERDUE',i:'fa-exclamation-circle'},due_today:{t:'📅 Due Today',i:'fa-calendar-check'},
-      reminder:{t:'🔔 Reminder',i:'fa-bell'},upcoming_high:{t:'🔴 Tomorrow',i:'fa-fire'},created:{t:'✅ Created',i:'fa-check-circle'}}[n.type]||{t:'🔔',i:'fa-bell'};
-      $('apS').className='ap-str '+(n.type==='created'?'created':pri);$('apI').className='ap-i '+(n.type==='created'?'created':pri);
-      $('apIi').className='fas '+cfg.i;$('apTt').textContent=cfg.t;$('apMg').textContent=n.message||'Update';
-      $('apPri').className='ap-pri '+pri;$('apPri').textContent=pri.toUpperCase();$('apTm').textContent=timeAgo(n.created_at);
-      const dur={high:settings.popup_duration_high||12,medium:settings.popup_duration_medium||8,low:settings.popup_duration_low||5}[pri]||8;
-      const bar=$('apBar');bar.style.animation='none';bar.offsetHeight;bar.style.animation=dur>0?`shrink ${dur}s linear forwards`:'none';
-      $('aP').classList.add('show');
-      if(settings.sound_enabled!==0)playSound(pri);
-      if(settings.browser_notif_enabled!==0&&'Notification' in window&&Notification.permission==='granted')
-      new Notification('TaskPro — '+cfg.t,{body:n.message||''});
-      if(dur>0)aTimer=setTimeout(()=>{closeAP();setTimeout(processQ,400);},dur*1000);}
-      function closeAP(){$('aP').classList.remove('show');clearTimeout(aTimer);setTimeout(()=>{aSh=false;processQ();},350);}
+      async function saveSet() {
+        var d = {
+          sound_enabled: gid("s-sound").checked ? 1 : 0,
+          popup_enabled: gid("s-popup").checked ? 1 : 0,
+          browser_notif_enabled: gid("s-browser").checked ? 1 : 0,
+          check_interval_secs: parseInt(gid("s-interval").value),
+          default_reminder_high: parseInt(gid("s-rh").value),
+          default_reminder_medium: parseInt(gid("s-rm").value),
+          default_reminder_low: parseInt(gid("s-rl").value),
+          popup_duration_high: parseInt(gid("s-dh").value),
+          popup_duration_medium: parseInt(gid("s-dm").value),
+          popup_duration_low: parseInt(gid("s-dl").value),
+          auto_snooze_mins: parseInt(gid("s-snz").value),
+        };
+        settings = (await apiCall("/settings", "PUT", d)) || settings;
+        startPoll();
+        toast("Settings saved", "ok");
+      }
 
-      let actx;function playSound(pri){try{if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
-      const notes={high:[[523,0],[659,.12],[784,.24],[1047,.36]],medium:[[523,0],[659,.15],[784,.3]],low:[[523,0],[659,.2]]}[pri]||[[523,0]];
-      notes.forEach(([f,d])=>{const o=actx.createOscillator(),g=actx.createGain();o.connect(g);g.connect(actx.destination);
-      o.type=pri==='high'?'triangle':'sine';o.frequency.value=f;const t=actx.currentTime+d;
-      g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.15,t+.04);g.gain.exponentialRampToValueAtTime(.001,t+.4);
-      o.start(t);o.stop(t+.5);});}catch(e){}}
+      // ═══════════════════════════════════════════
+      // POLLING
+      // ═══════════════════════════════════════════
+      function startPoll() {
+        if (pollTimer) {
+          clearInterval(pollTimer);
+        }
+        var iv = (settings.check_interval_secs || 30) * 1000;
+        pollTimer = setInterval(pollN, iv);
+      }
 
-      const $=id=>document.getElementById(id);
-      const td=()=>new Date().toISOString().split('T')[0];
-      const isOv=t=>t.due_date&&t.due_date<td()&&t.status!=='completed';
-      const fmtD=s=>{if(!s)return'';return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});};
-      const timeAgo=s=>{if(!s)return'';const d=Math.floor((Date.now()-new Date(s))/1000);if(d<60)return'Now';if(d<3600)return Math.floor(d/60)+'m';if(d<86400)return Math.floor(d/3600)+'h';return Math.floor(d/86400)+'d';};
-      const pTags=t=>{try{return JSON.parse(t||'[]')}catch{return[];}};
-      const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const cap=s=>s?s[0].toUpperCase()+s.slice(1):'';
-      const setV=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
-      function fillSel(id,items,ph=null){const el=$(id);if(!el)return;const cv=el.value;
-      el.innerHTML=(ph?`<option value="">${ph}</option>`:'')+items.map(i=>`<option value="${esc(i.v)}">${esc(i.l)}</option>`).join('');if(cv)el.value=cv;}
+      async function pollN() {
+        var newN = (await apiCall("/notifications/new")) || [];
+        var fresh = newN.filter(function (n) {
+          return !knownN.has(n.id);
+        });
+        fresh.forEach(function (n) {
+          knownN.add(n.id);
+          alertQueue.push(n);
+        });
+        if (fresh.length > 0) {
+          await fN();
+          processQ();
+        }
+      }
 
-      function tRow(t){const ov=isOv(t);const tags=pTags(t.tags).map(g=>`<span class="tag">#${esc(g)}</span>`).join('');
-      const prC={high:'ph-',medium:'pm-',low:'pl-'}[t.priority]||'pm-';const stC={pending:'sb-p',in_progress:'sb-i',completed:'sb-c'}[t.status]||'sb-p';
-      return `<div class="tr ${t.status==='completed'?'done':''} ${ov?'ov-r':''}">
-      <div class="chk ${t.status==='completed'?'done':''}" onclick="togSt(${t.id},event)">${t.status==='completed'?'<i class="fas fa-check" style="font-size:9px"></i>':''}</div>
-      <div class="ti" onclick="editT(${t.id})"><div class="tn">${esc(t.title)} <span class="pri ${prC}">${t.priority}</span><span class="sb ${stC}">${t.status.replace('_',' ')}</span></div>
-      ${t.description?`<div class="td">${esc(t.description)}</div>`:''}
-      <div class="tf">${t.due_date?`<span class="${ov?'ovt':''}"><i class="fas fa-calendar"></i>${fmtD(t.due_date)}${t.due_time?' '+t.due_time:''}${ov?' ⚠️':''}</span>`:''}
-      <span><i class="fas fa-folder"></i>${esc(t.category)}</span>
-      ${t.assigned_to?`<span><i class="fas fa-user"></i>${esc(t.assigned_to)}</span>`:''}
-      <span><i class="fas fa-bell"></i>${t.reminder_mins}m</span></div>
-      ${tags?`<div style="margin-top:4px">${tags}</div>`:''}</div>
-      <div class="ta"><button class="ab" onclick="editT(${t.id})"><i class="fas fa-pen"></i></button>
-      <button class="ab del" onclick="delT(${t.id},event)"><i class="fas fa-trash"></i></button></div></div>`;}
+      function processQ() {
+        if (alertShowing || alertQueue.length === 0) {
+          return;
+        }
+        var n = alertQueue.shift();
+        var pri = n.priority || n.task_priority || "medium";
+        if (settings.popup_enabled !== 0) {
+          showAP(n, pri);
+        }
+      }
 
-      function emptyS(m='No tasks'){return `<div class="empty"><i class="fas fa-clipboard-list"></i><h3>${m}</h3><button class="btn btn-p" onclick="openTM()"><i class="fas fa-plus"></i> New Task</button></div>`;}
-      function setL(id,l){const e=$(id);if(!e)return;e.innerHTML=l&&l.length?l.map(tRow).join(''):emptyS();}
+      // ═══════════════════════════════════════════
+      // ALERT POPUP
+      // ═══════════════════════════════════════════
+      function showAP(n, pri) {
+        alertShowing = true;
+        clearTimeout(alertTimer);
+        currentAlertTaskId = n.task_id || null;
 
-      function render(){updateSt();updateRing();updateBdg();renderSBC();
-      switch(cur){case'dashboard':rDash();break;case'all':rAll();break;case'today':rToday();break;case'overdue':rOver();break;case'completed':rComp();break;}}
+        var cfgMap = {
+          overdue: { t: "OVERDUE", i: "fa-exclamation-circle" },
+          due_today: { t: "Due Today", i: "fa-calendar-check" },
+          reminder: { t: "Reminder", i: "fa-bell" },
+          upcoming_high: { t: "Tomorrow — High", i: "fa-fire" },
+          created: { t: "Task Created", i: "fa-check-circle" },
+        };
+        var cfg = cfgMap[n.type] || { t: "Notification", i: "fa-bell" };
+        var iconCls = n.type === "created" ? "created" : pri;
 
-      function rDash(){const s=$('d-st')?.value||'',p=$('d-pr')?.value||'';let l=[...allT];if(s)l=l.filter(t=>t.status===s);if(p)l=l.filter(t=>t.priority===p);setL('dList',l.slice(0,30));}
-      function rAll(){const s=$('a-st')?.value||'',p=$('a-pr')?.value||'',c=$('a-ca')?.value||'',q=$('srch')?.value.toLowerCase()||'';
-      let l=[...allT];if(s)l=l.filter(t=>t.status===s);if(p)l=l.filter(t=>t.priority===p);if(c)l=l.filter(t=>t.category===c);
-      if(q)l=l.filter(t=>(t.title+' '+(t.description||'')).toLowerCase().includes(q));setL('aL',l);}
-      function rToday(){const t2=td();const l=allT.filter(t=>t.due_date===t2&&t.status!=='completed');$('tL').innerHTML=l.length?l.map(tRow).join('':emptyS('Nothing today 🎉');}
-      function rOver(){const l=allT.filter(t=>isOv(t));$('oL').innerHTML=l.length?l.map(tRow).join(''):emptyS('All caught up! 🎉');}
-      function rComp(){setL('cL',allT.filter(t=>t.status==='completed').sort((a,b)=>(b.completed_at||'').localeCompare(a.completed_at||'')));}
+        gid("apS").className = "ap-str " + iconCls;
+        gid("apI").className = "ap-i " + iconCls;
+        gid("apIi").className = "fas " + cfg.i;
+        gid("apTt").textContent = cfg.t;
+        gid("apMg").textContent = n.message || n.task_title || "Update";
+        gid("apPri").className = "ap-pri " + pri;
+        gid("apPri").textContent = pri.toUpperCase() + " PRIORITY";
+        gid("apTm").textContent = timeAgo(n.created_at);
 
-      function updateSt(){setV('s-t',stats.total||0);setV('s-d',stats.completed||0);setV('s-p',stats.in_progress||0);setV('s-o',stats.overdue||0);}
-      function updateRing(){const t=stats.total||0,c=stats.completed||0;const p=t>0?Math.round(c/t*100):0;
-      setV('rPct',p+'%');setV('rD',c);setV('rPn',stats.pending||0);setV('rO',stats.overdue||0);
-      const ring=$('rC');if(ring)ring.style.strokeDashoffset=214-(p/100)*214;}
-      function renderSBC(){setV('nc-all',allT.filter(t=>t.status!=='completed').length);
-      setV('nc-today',allT.filter(t=>t.due_date===td()&&t.status!=='completed').length);
-      setV('nc-ov',allT.filter(t=>isOv(t)).length);}
+        var durMap = {
+          high: settings.popup_duration_high || 12,
+          medium: settings.popup_duration_medium || 8,
+          low: settings.popup_duration_low || 5,
+        };
+        var dur = durMap[pri] || 8;
 
-      function renderSB(){const ce=$('sbC');if(ce)ce.innerHTML=cats.map(c=>{const n=allT.filter(t=>t.category===c.name&&t.status!=='completed').length;
-      return `<button class="nb" onclick="fCat('${esc(c.name)}')"><span style="width:9px;height:9px;border-radius:50%;background:${c.color};display:inline-block"></span><span class="nt">${esc(c.name)}</span><span class="nc">${n}</span></button>`;}).join('');
-      const cp=$('cP');if(cp)cp.innerHTML=cats.map(c=>{const n=allT.filter(t=>t.category===c.name&&t.status!=='completed').length;
-      return `<div class="pr" onclick="fCat('${esc(c.name)}')"><span class="pdot" style="background:${c.color}"></span><span class="pn">${esc(c.name)}</span><span class="pc">${n}</span></div>`;}).join('');
-      fillSel('a-ca',cats.map(c=>({v:c.name,l:c.name})),'All Cat');fillSel('f-cat',cats.map(c=>({v:c.name,l:c.name})));}
+        var bar = gid("apBar");
+        bar.style.animation = "none";
+        bar.offsetHeight; // trigger reflow
+        bar.style.animation =
+          dur > 0 ? "shrink " + dur + "s linear forwards" : "none";
 
-      function updateBdg(){const u=notifs.filter(n=>!n.is_read).length;$('nBdg').textContent=u;$('nBdg').style.display=u?'flex':'none';}
-      function renderNL(){const e=$('nList');if(!notifs.length){e.innerHTML='<div class="nde"><i class="fas fa-bell-slash"></i>None</div>';return;}
-      e.innerHTML=notifs.slice(0,30).map(n=>{const pc=n.priority==='high'?'hp':n.priority==='medium'?'mp':'';
-      return `<div class="ndi ${n.is_read?'':'unread'} ${pc}" onclick="readN(${n.id})">
-      <div class="ni ${n.type}"><i class="fas ${n.type==='overdue'?'fa-exclamation-circle':n.type==='due_today'?'fa-calendar-check':'fa-bell'}"></i></div>
-      <div class="nt2"><div class="nm">${esc(n.message)}</div><div class="ntm">${timeAgo(n.created_at)}</div></div></div>`;}).join('');}
-      function toggleND(){$('nDrop').classList.toggle('open');}
-      async function readN(id){await api(`/notifications/${id}/read`,'PUT');await fN();}
-      async function markAll(){await api('/notifications/read-all','PUT');await fN();toast('Done','ok');}
-      async function clearR(){await api('/notifications/clear-read','DELETE');await fN();toast('Cleared','ok');}
+        gid("aP").classList.add("show");
 
-      function openTM(t=null){['f-id','f-title','f-desc','f-date','f-time','f-asn','f-tags','f-notes'].forEach(id=>{const e=$(id);if(e)e.value='';});
-      $('f-pri').value='medium';$('f-status').value='pending';$('f-rem').value=settings.default_reminder_medium||30;$('mTi').textContent='New Task';
-      fillSel('f-cat',cats.map(c=>({v:c.name,l:c.name})));
-      if(t){$('mTi').textContent='Edit';$('f-id').value=t.id;$('f-title').value=t.title||'';$('f-desc').value=t.description||'';
-      $('f-cat').value=t.category||'General';$('f-pri').value=t.priority||'medium';$('f-date').value=t.due_date||'';$('f-time').value=t.due_time||'';
-      $('f-status').value=t.status||'pending';$('f-rem').value=t.reminder_mins||30;$('f-asn').value=t.assigned_to||'';
-      $('f-tags').value=pTags(t.tags).join(', ');$('f-notes').value=t.notes||'';}
-      $('tOv').classList.add('open');setTimeout(()=>$('f-title').focus(),120);}
-      function closeTM(){$('tOv').classList.remove('open');}
-      function editT(id){const t=allT.find(x=>x.id===id);if(t)openTM(t);}
+        if (settings.sound_enabled !== 0) {
+          playSound(pri);
+        }
+        if (settings.browser_notif_enabled !== 0) {
+          sendBN(cfg.t, n.message || "");
+        }
 
-      $('f-pri').addEventListener('change',function(){const r={high:settings.default_reminder_high||15,medium:settings.default_reminder_medium||30,low:settings.default_reminder_low||60};$('f-rem').value=r[this.value]||30;});
+        if (dur > 0) {
+          alertTimer = setTimeout(function () {
+            closeAP();
+            setTimeout(processQ, 400);
+          }, dur * 1000);
+        }
+      }
 
-      async function saveT(){const id=$('f-id').value,title=$('f-title').value.trim();if(!title){toast('Title needed','er');return;}
-      const tags=$('f-tags').value?$('f-tags').value.split(',').map(s=>s.trim()).filter(Boolean):[];
-      const p={title,description:$('f-desc').value,category:$('f-cat').value,priority:$('f-pri').value,status:$('f-status').value,
-      due_date:$('f-date').value||null,due_time:$('f-time').value||null,reminder_mins:+$('f-rem').value,assigned_to:$('f-asn').value,tags,notes:$('f-notes').value};
-      let r;if(id){r=await api(`/tasks/${id}`,'PUT',p);if(r&&!r.error){toast('Updated ✅','ok');showAP({type:'created',priority:p.priority,message:`"${title}" updated`,created_at:new Date().toISOString()},p.priority);}}
-      else{r=await api('/tasks','POST',p);if(r&&!r.error){toast('Created 🎉','ok');showAP({type:'created',priority:p.priority,message:`"${title}" created`,created_at:new Date().toISOString()},p.priority);}}
-      if(r&&!r.error){closeTM();await loadAll();}}
+      function closeAP() {
+        gid("aP").classList.remove("show");
+        clearTimeout(alertTimer);
+        currentAlertTaskId = null;
+        setTimeout(function () {
+          alertShowing = false;
+          processQ();
+        }, 350);
+      }
 
-      async function togSt(id,e){e.stopPropagation();const t=allT.find(x=>x.id===id);if(!t)return;
-      const ns=t.status==='completed'?'pending':'completed';await api(`/tasks/${id}`,'PUT',{status:ns});
-      toast(ns==='completed'?'Done! 🎉':'Reopened','ok');if(ns==='completed')playSound('high');await loadAll();}
+      function doSnooze() {
+        if (currentAlertTaskId) {
+          var mins = settings.auto_snooze_mins || 10;
+          apiCall("/tasks/" + currentAlertTaskId + "/snooze", "PUT", {
+            minutes: mins,
+          });
+          toast("Snoozed for " + mins + " minutes", "wa");
+        }
+        closeAP();
+      }
 
-      async function delT(id,e){e.stopPropagation();const t=allT.find(x=>x.id===id);if(!t||!confirm(`Delete "${t.title}"?`))return;
-      await api(`/tasks/${id}`,'DELETE');toast('Deleted','ok');await loadAll();}
+      // ═══════════════════════════════════════════
+      // NOTIFICATIONS
+      // ═══════════════════════════════════════════
+      function reqNotifPerm() {
+        if ("Notification" in window && Notification.permission === "default") {
+          Notification.requestPermission();
+        }
+      }
 
-      function openCatM(){$('cOv').classList.add('open');}function closeCM(){$('cOv').classList.remove('open');}
-      async function saveCat(){const n=$('cn').value.trim();if(!n){toast('Name needed','er');return;}
-      const r=await api('/categories','POST',{name:n,color:$('cc').value});if(r&&!r.error){toast('Created','ok');closeCM();$('cn').value='';await loadAll();}else toast(r?.error||'Error','er');}
+      function sendBN(title, body) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          var n = new Notification("TaskPro — " + title, { body: body });
+          n.onclick = function () {
+            window.focus();
+            n.close();
+          };
+        }
+      }
 
-      function openSettings(){$('sOv').classList.add('open');}function closeSM(){$('sOv').classList.remove('open');}
+      var audioCtx = null;
+      function playSound(pri) {
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          var patternsMap = {
+            high: [
+              [523, 0],
+              [659, 0.12],
+              [784, 0.24],
+              [1047, 0.36],
+            ],
+            medium: [
+              [523, 0],
+              [659, 0.15],
+              [784, 0.3],
+            ],
+            low: [
+              [523, 0],
+              [659, 0.2],
+            ],
+          };
+          var notes = patternsMap[pri] || patternsMap["medium"];
+          notes.forEach(function (pair) {
+            var freq = pair[0],
+              delay = pair[1];
+            var osc = audioCtx.createOscillator();
+            var gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.type = pri === "high" ? "triangle" : "sine";
+            osc.frequency.value = freq;
+            var t = audioCtx.currentTime + delay;
+            gain.gain.setValueAtTime(0, t);
+            gain.gain.linearRampToValueAtTime(0.15, t + 0.04);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            osc.start(t);
+            osc.stop(t + 0.5);
+          });
+        } catch (e) {
+          console.warn("Audio error:", e);
+        }
+      }
 
-      function go(id,btn){cur=id;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-      document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));const pg=$('page-'+id);if(pg)pg.classList.add('active');
-      if(btn)btn.classList.add('active');render();if(window.innerWidth<=768)$('sidebar').classList.remove('mob');}
+      function updateBdg() {
+        var u = notifs.filter(function (n) {
+          return !n.is_read;
+        }).length;
+        gid("nBdg").textContent = u;
+        gid("nBdg").style.display = u > 0 ? "flex" : "none";
+      }
 
-      function fCat(n){go('all',document.querySelector('[data-page="all"]'));setTimeout(()=>{$('a-ca').value=n;rAll();},50);}
-      let sTimer;function onSrch(){clearTimeout(sTimer);sTimer=setTimeout(()=>{if(cur!=='all')go('all',document.querySelector('[data-page="all"]'));else rAll();},300);}
-      function toggleSB(){const sb=$('sidebar');if(window.innerWidth<=768)sb.classList.toggle('mob');else sb.classList.toggle('slim');}
-      function toggleTheme(){document.body.classList.toggle('dark');$('thI').className=document.body.classList.contains('dark')?'fas fa-sun':'fas fa-moon';
-      localStorage.setItem('tp-t',document.body.classList.contains('dark')?'dark':'light');}
-      function loadTheme(){if(localStorage.getItem('tp-t')==='dark'){document.body.classList.add('dark');$('thI').className='fas fa-sun';}}
-      function setGreet(){const h=new Date().getHours();setV('greet',h<12?'Good Morning 👋':h<17?'Good Afternoon ☀️':'Good Evening 🌙');}
-      function toast(m,tp='ok'){const w=$('tw');const e=document.createElement('div');e.className='toast '+tp;
-      e.innerHTML=`<i class="fas ${tp==='ok'?'fa-check-circle':tp==='er'?'fa-times-circle':'fa-exclamation-triangle'} tii"></i><span class="tmsg">${m}</span><button class="tcl" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
-      w.appendChild(e);setTimeout(()=>{e.style.opacity='0';setTimeout(()=>e.remove(),300);},4000);}
-      document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();$('srch').focus();}
-      if((e.ctrlKey||e.metaKey)&&e.key==='n'){e.preventDefault();openTM();}
-      if(e.key==='Escape')document.querySelectorAll('.ov.open,.ndrop.open').forEach(el=>el.classList.remove('open'));});
-      document.addEventListener('click',e=>{if(!e.target.closest('#bellBtn')&&!e.target.closest('#nDrop'))$('nDrop').classList.remove('open');});
+      function renderNL() {
+        var el = gid("nList");
+        if (!notifs || notifs.length === 0) {
+          el.innerHTML =
+            '<div class="nde"><i class="fas fa-bell-slash"></i>No notifications</div>';
+          return;
+        }
+        var html = "";
+        notifs.slice(0, 40).forEach(function (n) {
+          var pc =
+            n.priority === "high" ? "hp" : n.priority === "medium" ? "mp" : "";
+          var iCls =
+            n.type === "overdue" || n.type === "upcoming_high"
+              ? "fa-exclamation-circle"
+              : n.type === "due_today"
+                ? "fa-calendar-check"
+                : "fa-bell";
+          html +=
+            '<div class="ndi ' +
+            (n.is_read ? "" : "unread") +
+            " " +
+            pc +
+            '" onclick="readN(' +
+            n.id +
+            ')">';
+          html +=
+            '<div class="ni ' +
+            n.type +
+            '"><i class="fas ' +
+            iCls +
+            '"></i></div>';
+          html +=
+            '<div class="nt2"><div class="nm">' + escHtml(n.message) + "</div>";
+          html +=
+            '<div class="ntm">' + timeAgo(n.created_at) + "</div></div></div>";
+        });
+        el.innerHTML = html;
+      }
+
+      function toggleND() {
+        gid("nDrop").classList.toggle("open");
+      }
+
+      async function readN(id) {
+        await apiCall("/notifications/" + id + "/read", "PUT");
+        await fN();
+      }
+
+      async function markAll() {
+        await apiCall("/notifications/read-all", "PUT");
+        await fN();
+        toast("All marked as read", "ok");
+      }
+
+      async function clearR() {
+        await apiCall("/notifications/clear-read", "DELETE");
+        await fN();
+        toast("Cleared", "ok");
+      }
+
+      // ═══════════════════════════════════════════
+      // RENDER HELPERS
+      // ═══════════════════════════════════════════
+      function gid(id) {
+        return document.getElementById(id);
+      }
+      function todayStr() {
+        return new Date().toISOString().split("T")[0];
+      }
+      function nxtWeekStr() {
+        var d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d.toISOString().split("T")[0];
+      }
+      function isOv(t) {
+        return (
+          t.due_date && t.due_date < todayStr() && t.status !== "completed"
+        );
+      }
+
+      function fmtDate(s) {
+        if (!s) {
+          return "";
+        }
+        var d = new Date(s + "T00:00:00");
+        return d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function timeAgo(s) {
+        if (!s) {
+          return "";
+        }
+        var diff = Math.floor((Date.now() - new Date(s)) / 1000);
+        if (diff < 60) {
+          return "Just now";
+        }
+        if (diff < 3600) {
+          return Math.floor(diff / 60) + "m ago";
+        }
+        if (diff < 86400) {
+          return Math.floor(diff / 3600) + "h ago";
+        }
+        return Math.floor(diff / 86400) + "d ago";
+      }
+
+      function parseTags(t) {
+        try {
+          return JSON.parse(t || "[]");
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function escHtml(s) {
+        return String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function cap(s) {
+        return s ? s.charAt(0).toUpperCase() + s.slice(1) : "";
+      }
+
+      function setV(id, v) {
+        var el = gid(id);
+        if (el) {
+          el.textContent = v;
+        }
+      }
+
+      function fillSel(id, items, placeholder) {
+        var el = gid(id);
+        if (!el) {
+          return;
+        }
+        var cur = el.value;
+        var html = placeholder
+          ? '<option value="">' + placeholder + "</option>"
+          : "";
+        items.forEach(function (item) {
+          html +=
+            '<option value="' +
+            escHtml(item.v) +
+            '">' +
+            escHtml(item.l) +
+            "</option>";
+        });
+        el.innerHTML = html;
+        if (cur) {
+          el.value = cur;
+        }
+      }
+
+      // ═══════════════════════════════════════════
+      // TASK ROW
+      // ═══════════════════════════════════════════
+      function tRow(t) {
+        var ov = isOv(t);
+        var tags = parseTags(t.tags)
+          .map(function (tg) {
+            return '<span class="tag">#' + escHtml(tg) + "</span>";
+          })
+          .join("");
+        var prCls =
+          { high: "ph-", medium: "pm-", low: "pl-" }[t.priority] || "pm-";
+        var stCls =
+          { pending: "sb2-p", in_progress: "sb2-i", completed: "sb2-c" }[
+            t.status
+          ] || "sb2-p";
+        var rowCls =
+          (t.status === "completed" ? " done" : "") +
+          (ov ? " ov-r" : "") +
+          (t.is_pinned ? " pinned-r" : "");
+        var checkCls = t.status === "completed" ? "done" : "";
+        var checkInner =
+          t.status === "completed"
+            ? '<i class="fas fa-check" style="font-size:9px"></i>'
+            : "";
+
+        var html = '<div class="tr' + rowCls + '" id="tr-' + t.id + '">';
+        html +=
+          '<div class="chk ' +
+          checkCls +
+          '" onclick="togSt(' +
+          t.id +
+          ', event)">' +
+          checkInner +
+          "</div>";
+        html += '<div class="ti" onclick="editT(' + t.id + ')">';
+        html += '<div class="tn">';
+        if (t.is_pinned) {
+          html += '<i class="fas fa-thumbtack pin-ic"></i> ';
+        }
+        html += escHtml(t.title);
+        html += ' <span class="pri ' + prCls + '">' + t.priority + "</span>";
+        html +=
+          ' <span class="sb2 ' +
+          stCls +
+          '">' +
+          t.status.replace("_", " ") +
+          "</span>";
+        if (t.progress > 0) {
+          html +=
+            ' <span style="font-size:10px;color:var(--txm)">' +
+            t.progress +
+            "%</span>";
+        }
+        html += "</div>";
+        if (t.description) {
+          html += '<div class="td">' + escHtml(t.description) + "</div>";
+        }
+        html += '<div class="tf">';
+        if (t.due_date) {
+          html +=
+            '<span class="' +
+            (ov ? "ovt" : "") +
+            '"><i class="fas fa-calendar"></i>' +
+            fmtDate(t.due_date);
+          if (t.due_time) {
+            html += " " + t.due_time;
+          }
+          if (ov) {
+            html += " ⚠️";
+          }
+          html += "</span>";
+        }
+        html +=
+          '<span><i class="fas fa-folder"></i>' +
+          escHtml(t.category) +
+          "</span>";
+        if (t.assigned_to) {
+          html +=
+            '<span><i class="fas fa-user"></i>' +
+            escHtml(t.assigned_to) +
+            "</span>";
+        }
+        if (t.project) {
+          html +=
+            '<span><i class="fas fa-diagram-project"></i>' +
+            escHtml(t.project) +
+            "</span>";
+        }
+        html +=
+          '<span><i class="fas fa-bell"></i>' +
+          (t.reminder_mins || 30) +
+          "m</span>";
+        html += "</div>";
+        if (tags) {
+          html += '<div style="margin-top:4px">' + tags + "</div>";
+        }
+        html += "</div>";
+        html += '<div class="ta">';
+        html +=
+          '<button class="ab" onclick="pinT(' +
+          t.id +
+          ', event)" title="Pin"><i class="fas fa-thumbtack"></i></button>';
+        html +=
+          '<button class="ab" onclick="editT(' +
+          t.id +
+          ')" title="Edit"><i class="fas fa-pen"></i></button>';
+        html +=
+          '<button class="ab del" onclick="delT(' +
+          t.id +
+          ', event)" title="Delete"><i class="fas fa-trash"></i></button>';
+        html += "</div>";
+        html += "</div>";
+        return html;
+      }
+
+      function emptyState(msg, sub) {
+        msg = msg || "No tasks found";
+        sub = sub || "Click New Task to get started";
+        return (
+          '<div class="empty"><i class="fas fa-clipboard-list"></i><h3>' +
+          msg +
+          "</h3><p>" +
+          sub +
+          "</p>" +
+          '<button class="btn btn-p" onclick="openTM()"><i class="fas fa-plus"></i> New Task</button></div>'
+        );
+      }
+
+      function setList(id, list) {
+        var el = gid(id);
+        if (!el) {
+          return;
+        }
+        if (!list || list.length === 0) {
+          el.innerHTML = emptyState();
+          return;
+        }
+        el.innerHTML = list.map(tRow).join("");
+      }
+
+      // ═══════════════════════════════════════════
+      // RENDER PAGES
+      // ═══════════════════════════════════════════
+      function render() {
+        updateStats();
+        updateRing();
+        updateBdg();
+        renderSBCounts();
+        switch (curPage) {
+          case "dashboard":
+            rDash();
+            break;
+          case "all":
+            rAll();
+            break;
+          case "today":
+            rToday();
+            break;
+          case "upcoming":
+            rUpcoming();
+            break;
+          case "overdue":
+            rOver();
+            break;
+          case "completed":
+            rComp();
+            break;
+          case "pinned":
+            rPinned();
+            break;
+        }
+      }
+
+      function rDash() {
+        var s = gid("d-st") ? gid("d-st").value : "";
+        var p = gid("d-pr") ? gid("d-pr").value : "";
+        var list = allT.slice();
+        if (s) {
+          list = list.filter(function (t) {
+            return t.status === s;
+          });
+        }
+        if (p) {
+          list = list.filter(function (t) {
+            return t.priority === p;
+          });
+        }
+        setList("dList", list.slice(0, 30));
+      }
+
+      function rAll() {
+        var s = gid("a-st") ? gid("a-st").value : "";
+        var p = gid("a-pr") ? gid("a-pr").value : "";
+        var c = gid("a-ca") ? gid("a-ca").value : "";
+        var j = gid("a-pj") ? gid("a-pj").value : "";
+        var so = gid("a-so") ? gid("a-so").value : "created_at";
+        var q = gid("srch") ? gid("srch").value.toLowerCase() : "";
+        var list = allT.slice();
+        if (s) {
+          list = list.filter(function (t) {
+            return t.status === s;
+          });
+        }
+        if (p) {
+          list = list.filter(function (t) {
+            return t.priority === p;
+          });
+        }
+        if (c) {
+          list = list.filter(function (t) {
+            return t.category === c;
+          });
+        }
+        if (j) {
+          list = list.filter(function (t) {
+            return t.project === j;
+          });
+        }
+        if (q) {
+          list = list.filter(function (t) {
+            var combined =
+              (t.title || "") +
+              " " +
+              (t.description || "") +
+              " " +
+              (t.notes || "");
+            return combined.toLowerCase().indexOf(q) !== -1;
+          });
+        }
+        if (so === "priority") {
+          var ord = { high: 0, medium: 1, low: 2 };
+          list.sort(function (a, b) {
+            return (ord[a.priority] || 1) - (ord[b.priority] || 1);
+          });
+        } else {
+          list.sort(function (a, b) {
+            return (a[so] || "").localeCompare(b[so] || "");
+          });
+        }
+        setList("aL", list);
+      }
+
+      function rToday() {
+        var td = todayStr();
+        var list = allT.filter(function (t) {
+          return t.due_date === td && t.status !== "completed";
+        });
+        var el = gid("tL");
+        if (!el) {
+          return;
+        }
+        if (list.length === 0) {
+          el.innerHTML =
+            '<div class="empty"><i class="fas fa-sun"></i><h3>No tasks today</h3><p>Enjoy your day! 🎉</p></div>';
+        } else {
+          el.innerHTML = list.map(tRow).join("");
+        }
+      }
+
+      function rUpcoming() {
+        var td = todayStr();
+        var nw = nxtWeekStr();
+        var list = allT.filter(function (t) {
+          return (
+            t.due_date > td && t.due_date <= nw && t.status !== "completed"
+          );
+        });
+        setList("uL", list);
+      }
+
+      function rOver() {
+        var list = allT.filter(function (t) {
+          return isOv(t);
+        });
+        var el = gid("oL");
+        if (!el) {
+          return;
+        }
+        if (list.length === 0) {
+          el.innerHTML =
+            '<div class="empty"><i class="fas fa-trophy"></i><h3>All caught up!</h3><p>No overdue tasks 🎉</p></div>';
+        } else {
+          el.innerHTML = list.map(tRow).join("");
+        }
+      }
+
+      function rComp() {
+        var list = allT.filter(function (t) {
+          return t.status === "completed";
+        });
+        list.sort(function (a, b) {
+          return (b.completed_at || "").localeCompare(a.completed_at || "");
+        });
+        setList("cL", list);
+      }
+
+      function rPinned() {
+        var list = allT.filter(function (t) {
+          return t.is_pinned && t.status !== "completed";
+        });
+        setList("pnL", list);
+      }
+
+      // ═══════════════════════════════════════════
+      // STATS & RING
+      // ═══════════════════════════════════════════
+      function updateStats() {
+        setV("s-t", stats.total || 0);
+        setV("s-d", stats.completed || 0);
+        setV("s-p", stats.in_progress || 0);
+        setV("s-o", stats.overdue || 0);
+        setV("s-td", stats.due_today || 0);
+        setV("s-hp", stats.high_priority || 0);
+      }
+
+      function updateRing() {
+        var total = stats.total || 0;
+        var completed = stats.completed || 0;
+        var pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        var offset = 214 - (pct / 100) * 214;
+        setV("rPct", pct + "%");
+        setV("rD", stats.completed || 0);
+        setV("rI", stats.in_progress || 0);
+        setV("rPn", stats.pending || 0);
+        setV("rO", stats.overdue || 0);
+        var ring = gid("rC");
+        if (ring) {
+          ring.style.strokeDashoffset = offset;
+        }
+      }
+
+      function renderSBCounts() {
+        var td = todayStr();
+        setV(
+          "nc-all",
+          allT.filter(function (t) {
+            return t.status !== "completed";
+          }).length,
+        );
+        setV(
+          "nc-today",
+          allT.filter(function (t) {
+            return t.due_date === td && t.status !== "completed";
+          }).length,
+        );
+        setV(
+          "nc-ov",
+          allT.filter(function (t) {
+            return isOv(t);
+          }).length,
+        );
+        setV(
+          "nc-pin",
+          allT.filter(function (t) {
+            return t.is_pinned && t.status !== "completed";
+          }).length,
+        );
+      }
+
+      // ═══════════════════════════════════════════
+      // SIDEBAR
+      // ═══════════════════════════════════════════
+      function renderSB() {
+        var ceEl = gid("sbC");
+        if (ceEl) {
+          var html = "";
+          cats.forEach(function (c) {
+            var cnt = allT.filter(function (t) {
+              return t.category === c.name && t.status !== "completed";
+            }).length;
+            html +=
+              '<button class="nb" onclick="fCat(\'' + escHtml(c.name) + "')\">";
+            html +=
+              '<span style="width:9px;height:9px;border-radius:50%;background:' +
+              c.color +
+              ';display:inline-block;flex-shrink:0"></span>';
+            html += '<span class="nt">' + escHtml(c.name) + "</span>";
+            html += '<span class="nc">' + cnt + "</span></button>";
+          });
+          ceEl.innerHTML = html;
+        }
+
+        var sbpEl = gid("sbP");
+        if (sbpEl) {
+          var html2 = "";
+          projs.forEach(function (p) {
+            html2 +=
+              '<button class="nb" onclick="fProj(\'' +
+              escHtml(p.name) +
+              "')\">";
+            html2 +=
+              '<span style="width:9px;height:9px;border-radius:50%;background:' +
+              p.color +
+              ';display:inline-block;flex-shrink:0"></span>';
+            html2 += '<span class="nt">' + escHtml(p.name) + "</span></button>";
+          });
+          sbpEl.innerHTML = html2;
+        }
+
+        var cpEl = gid("cP");
+        if (cpEl) {
+          var html3 = "";
+          cats.forEach(function (c) {
+            var cnt = allT.filter(function (t) {
+              return t.category === c.name && t.status !== "completed";
+            }).length;
+            html3 +=
+              '<div class="pr2" onclick="fCat(\'' + escHtml(c.name) + "')\">";
+            html3 +=
+              '<span class="pdot" style="background:' + c.color + '"></span>';
+            html3 += '<span class="pn2">' + escHtml(c.name) + "</span>";
+            html3 += '<span class="pc2">' + cnt + "</span></div>";
+          });
+          cpEl.innerHTML = html3;
+        }
+
+        fillSel(
+          "a-ca",
+          cats.map(function (c) {
+            return { v: c.name, l: c.name };
+          }),
+          "All Categories",
+        );
+        fillSel(
+          "a-pj",
+          projs.map(function (p) {
+            return { v: p.name, l: p.name };
+          }),
+          "All Projects",
+        );
+        fillSel(
+          "f-cat",
+          cats.map(function (c) {
+            return { v: c.name, l: c.name };
+          }),
+        );
+        fillSel(
+          "f-proj",
+          projs.map(function (p) {
+            return { v: p.name, l: p.name };
+          }),
+          "None",
+        );
+      }
+
+      async function renderAct() {
+        var rows = (await apiCall("/activity?limit=12")) || [];
+        var el = gid("aList");
+        if (!el || !rows) {
+          return;
+        }
+        if (rows.length === 0) {
+          el.innerHTML =
+            '<div style="color:var(--txm);font-size:11px;text-align:center;padding:12px">No activity yet</div>';
+          return;
+        }
+        var html = "";
+        rows.forEach(function (r) {
+          var iCls =
+            r.action === "created"
+              ? "fa-plus"
+              : r.action === "deleted"
+                ? "fa-trash"
+                : "fa-pen";
+          html += '<div class="ai">';
+          html +=
+            '<div class="aic ' +
+            r.action +
+            '"><i class="fas ' +
+            iCls +
+            '"></i></div>';
+          html +=
+            '<div><div class="at2"><b>' +
+            cap(r.action) +
+            "</b> — " +
+            escHtml(r.task_title || "task") +
+            "</div>";
+          html +=
+            '<div class="atm">' + timeAgo(r.timestamp) + "</div></div></div>";
+        });
+        el.innerHTML = html;
+      }
+
+      // ═══════════════════════════════════════════
+      // TASK CRUD
+      // ═══════════════════════════════════════════
+      function openTM(task) {
+        task = task || null;
+        var ids = [
+          "f-id",
+          "f-title",
+          "f-desc",
+          "f-date",
+          "f-time",
+          "f-asn",
+          "f-tags",
+          "f-notes",
+        ];
+        ids.forEach(function (id) {
+          var e = gid(id);
+          if (e) {
+            e.value = "";
+          }
+        });
+        gid("f-pri").value = "medium";
+        gid("f-status").value = "pending";
+        gid("f-prog").value = 0;
+        gid("f-est").value = 0;
+        gid("f-pin").checked = false;
+        gid("f-rem").value = settings.default_reminder_medium || 30;
+        gid("mTi").textContent = "New Task";
+
+        fillSel(
+          "f-cat",
+          cats.map(function (c) {
+            return { v: c.name, l: c.name };
+          }),
+        );
+        fillSel(
+          "f-proj",
+          projs.map(function (p) {
+            return { v: p.name, l: p.name };
+          }),
+          "None",
+        );
+
+        if (task) {
+          gid("mTi").textContent = "Edit Task";
+          gid("f-id").value = task.id;
+          gid("f-title").value = task.title || "";
+          gid("f-desc").value = task.description || "";
+          gid("f-cat").value = task.category || "General";
+          gid("f-pri").value = task.priority || "medium";
+          gid("f-date").value = task.due_date || "";
+          gid("f-time").value = task.due_time || "";
+          gid("f-status").value = task.status || "pending";
+          gid("f-rem").value = task.reminder_mins || 30;
+          gid("f-asn").value = task.assigned_to || "";
+          gid("f-proj").value = task.project || "";
+          gid("f-prog").value = task.progress || 0;
+          gid("f-est").value = task.estimated_hours || 0;
+          gid("f-pin").checked = !!task.is_pinned;
+          gid("f-tags").value = parseTags(task.tags).join(", ");
+          gid("f-notes").value = task.notes || "";
+        }
+
+        gid("tOv").classList.add("open");
+        setTimeout(function () {
+          gid("f-title").focus();
+        }, 120);
+      }
+
+      function closeTM() {
+        gid("tOv").classList.remove("open");
+      }
+
+      function editT(id) {
+        var t = allT.filter(function (x) {
+          return x.id === id;
+        })[0];
+        if (t) {
+          openTM(t);
+        }
+      }
+
+      gid("f-pri").addEventListener("change", function () {
+        var remMap = {
+          high: settings.default_reminder_high || 15,
+          medium: settings.default_reminder_medium || 30,
+          low: settings.default_reminder_low || 60,
+        };
+        gid("f-rem").value = remMap[this.value] || 30;
+      });
+
+      async function saveT() {
+        var id = gid("f-id").value;
+        var title = gid("f-title").value.trim();
+        if (!title) {
+          toast("Title is required!", "er");
+          return;
+        }
+
+        var tagsRaw = gid("f-tags").value;
+        var tags = tagsRaw
+          ? tagsRaw
+              .split(",")
+              .map(function (s) {
+                return s.trim();
+              })
+              .filter(Boolean)
+          : [];
+
+        var payload = {
+          title: title,
+          description: gid("f-desc").value,
+          category: gid("f-cat").value,
+          priority: gid("f-pri").value,
+          status: gid("f-status").value,
+          due_date: gid("f-date").value || null,
+          due_time: gid("f-time").value || null,
+          reminder_mins: parseInt(gid("f-rem").value),
+          assigned_to: gid("f-asn").value,
+          project: gid("f-proj").value,
+          tags: tags,
+          notes: gid("f-notes").value,
+          progress: parseInt(gid("f-prog").value),
+          estimated_hours: parseFloat(gid("f-est").value),
+          is_pinned: gid("f-pin").checked ? 1 : 0,
+        };
+
+        var result;
+        if (id) {
+          result = await apiCall("/tasks/" + id, "PUT", payload);
+          if (result && !result.error) {
+            toast("Task updated! ✅", "ok");
+            showAP(
+              {
+                type: "created",
+                priority: payload.priority,
+                message: '"' + title + '" updated',
+                created_at: new Date().toISOString(),
+              },
+              payload.priority,
+            );
+          }
+        } else {
+          result = await apiCall("/tasks", "POST", payload);
+          if (result && !result.error) {
+            toast("Task created! 🎉", "ok");
+            showAP(
+              {
+                type: "created",
+                priority: payload.priority,
+                message: '"' + title + '" created',
+                created_at: new Date().toISOString(),
+              },
+              payload.priority,
+            );
+          }
+        }
+
+        if (result && !result.error) {
+          closeTM();
+          await loadAll();
+        }
+      }
+
+      async function togSt(id, e) {
+        e.stopPropagation();
+        var t = allT.filter(function (x) {
+          return x.id === id;
+        })[0];
+        if (!t) {
+          return;
+        }
+        var ns = t.status === "completed" ? "pending" : "completed";
+        var r = await apiCall("/tasks/" + id, "PUT", { status: ns });
+        if (r) {
+          toast(
+            ns === "completed" ? "Task completed! 🎉" : "Task reopened",
+            "ok",
+          );
+          if (ns === "completed") {
+            playSound("high");
+            sendBN("Task Completed", '"' + t.title + '" is done!');
+            showAP(
+              {
+                type: "created",
+                priority: t.priority,
+                message: '"' + t.title + '" completed! 🎉',
+                created_at: new Date().toISOString(),
+              },
+              t.priority,
+            );
+          }
+          await loadAll();
+        }
+      }
+
+      async function delT(id, e) {
+        e.stopPropagation();
+        var t = allT.filter(function (x) {
+          return x.id === id;
+        })[0];
+        if (!t) {
+          return;
+        }
+        if (!confirm('Delete "' + t.title + '"?')) {
+          return;
+        }
+        var r = await apiCall("/tasks/" + id, "DELETE");
+        if (r) {
+          toast("Task deleted", "ok");
+          await loadAll();
+        }
+      }
+
+      async function pinT(id, e) {
+        e.stopPropagation();
+        await apiCall("/tasks/" + id + "/pin", "PUT");
+        await loadAll();
+      }
+
+      // ═══════════════════════════════════════════
+      // CATEGORIES
+      // ═══════════════════════════════════════════
+      function openCatM() {
+        gid("cOv").classList.add("open");
+      }
+      function closeCM() {
+        gid("cOv").classList.remove("open");
+      }
+
+      async function saveCat() {
+        var name = gid("cn").value.trim();
+        if (!name) {
+          toast("Name required", "er");
+          return;
+        }
+        var r = await apiCall("/categories", "POST", {
+          name: name,
+          color: gid("cc").value,
+        });
+        if (r && !r.error) {
+          toast('"' + name + '" created', "ok");
+          closeCM();
+          gid("cn").value = "";
+          await loadAll();
+        } else {
+          toast(r && r.error ? r.error : "Error", "er");
+        }
+      }
+
+      // ═══════════════════════════════════════════
+      // PROJECTS
+      // ═══════════════════════════════════════════
+      function openProjM() {
+        gid("pOv").classList.add("open");
+      }
+      function closePM() {
+        gid("pOv").classList.remove("open");
+      }
+
+      async function saveProj() {
+        var name = gid("proj-name").value.trim();
+        if (!name) {
+          toast("Name required", "er");
+          return;
+        }
+        var r = await apiCall("/projects", "POST", {
+          name: name,
+          color: gid("proj-color").value,
+          description: gid("proj-desc").value,
+        });
+        if (r && !r.error) {
+          toast('"' + name + '" created', "ok");
+          closePM();
+          gid("proj-name").value = "";
+          gid("proj-desc").value = "";
+          await loadAll();
+        } else {
+          toast(r && r.error ? r.error : "Error", "er");
+        }
+      }
+
+      // ═══════════════════════════════════════════
+      // SETTINGS
+      // ═══════════════════════════════════════════
+      function openSettings() {
+        gid("sOv").classList.add("open");
+      }
+      function closeSM() {
+        gid("sOv").classList.remove("open");
+      }
+
+      // ═══════════════════════════════════════════
+      // EXPORT / IMPORT
+      // ═══════════════════════════════════════════
+      function openEI() {
+        gid("eOv").classList.add("open");
+      }
+      function closeEI() {
+        gid("eOv").classList.remove("open");
+      }
+
+      async function doExport() {
+        var data = await apiCall("/export");
+        if (!data) {
+          return;
+        }
+        var blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        a.href = url;
+        a.download = "taskpro_backup_" + todayStr() + ".json";
+        a.click();
+        URL.revokeObjectURL(url);
+        toast("Exported successfully!", "ok");
+      }
+
+      async function doImport(ev) {
+        var file = ev.target.files[0];
+        if (!file) {
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = async function (e) {
+          try {
+            var data = JSON.parse(e.target.result);
+            var r = await apiCall("/import", "POST", data);
+            if (r) {
+              toast("Imported " + r.imported + " tasks!", "ok");
+              closeEI();
+              await loadAll();
+            }
+          } catch (err) {
+            toast("Invalid JSON file", "er");
+          }
+        };
+        reader.readAsText(file);
+        ev.target.value = "";
+      }
+
+      // ═══════════════════════════════════════════
+      // PAGE NAVIGATION
+      // ═══════════════════════════════════════════
+      function go(pageId, btn) {
+        curPage = pageId;
+        document.querySelectorAll(".page").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        document.querySelectorAll(".nb").forEach(function (b) {
+          b.classList.remove("active");
+        });
+        var pg = gid("page-" + pageId);
+        if (pg) {
+          pg.classList.add("active");
+        }
+        if (btn) {
+          btn.classList.add("active");
+        }
+        render();
+        if (window.innerWidth <= 768) {
+          gid("sidebar").classList.remove("mob");
+        }
+      }
+
+      function fCat(name) {
+        go("all", document.querySelector('[data-page="all"]'));
+        setTimeout(function () {
+          var s = gid("a-ca");
+          if (s) {
+            s.value = name;
+            rAll();
+          }
+        }, 50);
+      }
+
+      function fProj(name) {
+        go("all", document.querySelector('[data-page="all"]'));
+        setTimeout(function () {
+          var s = gid("a-pj");
+          if (s) {
+            s.value = name;
+            rAll();
+          }
+        }, 50);
+      }
+
+      // ═══════════════════════════════════════════
+      // SEARCH
+      // ═══════════════════════════════════════════
+      var srchTimer;
+      function onSrch() {
+        clearTimeout(srchTimer);
+        srchTimer = setTimeout(function () {
+          if (curPage !== "all") {
+            go("all", document.querySelector('[data-page="all"]'));
+          } else {
+            rAll();
+          }
+        }, 300);
+      }
+
+      // ═══════════════════════════════════════════
+      // SIDEBAR & THEME
+      // ═══════════════════════════════════════════
+      function toggleSB() {
+        var sb = gid("sidebar");
+        if (window.innerWidth <= 768) {
+          sb.classList.toggle("mob");
+        } else {
+          sb.classList.toggle("slim");
+        }
+      }
+
+      function toggleTheme() {
+        document.body.classList.toggle("dark");
+        var isDark = document.body.classList.contains("dark");
+        gid("thI").className = isDark ? "fas fa-sun" : "fas fa-moon";
+        localStorage.setItem("tp-theme", isDark ? "dark" : "light");
+      }
+
+      function loadTheme() {
+        if (localStorage.getItem("tp-theme") === "dark") {
+          document.body.classList.add("dark");
+          gid("thI").className = "fas fa-sun";
+        }
+      }
+
+      // ═══════════════════════════════════════════
+      // GREETING & DATE
+      // ═══════════════════════════════════════════
+      function setGreet() {
+        var h = new Date().getHours();
+        var msg =
+          h < 12
+            ? "Good Morning 👋"
+            : h < 17
+              ? "Good Afternoon ☀️"
+              : "Good Evening 🌙";
+        setV("greet", msg);
+        setV(
+          "tDate",
+          new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+        );
+      }
+
+      // ═══════════════════════════════════════════
+      // TOAST
+      // ═══════════════════════════════════════════
+      function toast(msg, tp) {
+        tp = tp || "ok";
+        var w = gid("tw");
+        var el = document.createElement("div");
+        el.className = "toast " + tp;
+        var icMap = {
+          ok: "fa-check-circle",
+          er: "fa-times-circle",
+          wa: "fa-exclamation-triangle",
+        };
+        var ic = icMap[tp] || "fa-info-circle";
+        el.innerHTML =
+          '<i class="fas ' +
+          ic +
+          ' tii"></i><span class="tmsg">' +
+          msg +
+          "</span>" +
+          '<button class="tcl" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>';
+        w.appendChild(el);
+        setTimeout(function () {
+          el.style.opacity = "0";
+          el.style.transform = "translateX(50px)";
+          el.style.transition = "all .3s";
+          setTimeout(function () {
+            el.remove();
+          }, 300);
+        }, 4000);
+      }
+
+      // ═══════════════════════════════════════════
+      // KEYBOARD SHORTCUTS
+      // ═══════════════════════════════════════════
+      document.addEventListener("keydown", function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+          e.preventDefault();
+          gid("srch").focus();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+          e.preventDefault();
+          openTM();
+        }
+        if (e.key === "Escape") {
+          document
+            .querySelectorAll(".ov2.open, .ndrop.open")
+            .forEach(function (el) {
+              el.classList.remove("open");
+            });
+        }
+      });
+
+      document.addEventListener("click", function (e) {
+        if (!e.target.closest("#bellBtn") && !e.target.closest("#nDrop")) {
+          gid("nDrop").classList.remove("open");
+        }
+      });
     </script>
   </body>
 </html>
