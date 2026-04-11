@@ -1,0 +1,3404 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>TaskPro — Professional Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --P: #4f46e5;
+        --PH: #4338ca;
+        --PL: #818cf8;
+        --S: #0ea5e9;
+        --OK: #22c55e;
+        --WA: #f59e0b;
+        --ER: #ef4444;
+        --IN: #06b6d4;
+        --bg: #f0f2f8;
+        --card: #fff;
+        --inp: #f8fafc;
+        --tx: #1e293b;
+        --txm: #64748b;
+        --bdr: #e2e8f0;
+        --sh: 0 2px 8px rgba(0, 0, 0, 0.07);
+        --sh2: 0 8px 32px rgba(0, 0, 0, 0.13);
+        --r: 12px;
+        --tr: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+        --sw: 240px;
+        --hh: 58px;
+      }
+      body.dark {
+        --bg: #0b1120;
+        --card: #161f33;
+        --inp: #0b1120;
+        --tx: #e8edf5;
+        --txm: #8899bb;
+        --bdr: #1e2d47;
+        --sh: 0 2px 8px rgba(0, 0, 0, 0.3);
+        --sh2: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      body {
+        font-family: "Segoe UI", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--tx);
+        font-size: 14px;
+        overflow: hidden;
+        height: 100vh;
+      }
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--bdr);
+        border-radius: 3px;
+      }
+
+      /* APP SHELL */
+      .app {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* SIDEBAR */
+      .sidebar {
+        width: var(--sw);
+        flex-shrink: 0;
+        background: var(--card);
+        border-right: 1px solid var(--bdr);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        transition: width 0.25s;
+        overflow: hidden;
+      }
+      .sidebar.slim {
+        width: 60px;
+      }
+      .sb-brand {
+        height: var(--hh);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 15px;
+        border-bottom: 1px solid var(--bdr);
+        flex-shrink: 0;
+      }
+      .sb-logo {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, var(--P), var(--S));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-size: 15px;
+      }
+      .sb-name {
+        font-size: 16px;
+        font-weight: 800;
+        white-space: nowrap;
+        background: linear-gradient(135deg, var(--P), var(--S));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .sidebar.slim .sb-name {
+        display: none;
+      }
+      .sb-nav {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 8px 6px;
+      }
+      .ns {
+        margin-bottom: 16px;
+      }
+      .nsl {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--txm);
+        padding: 0 8px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        transition: opacity 0.2s;
+      }
+      .sidebar.slim .nsl {
+        opacity: 0;
+      }
+      .nb {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        padding: 8px 10px;
+        border: none;
+        background: none;
+        border-radius: 7px;
+        cursor: pointer;
+        color: var(--txm);
+        transition: var(--tr);
+        text-align: left;
+        white-space: nowrap;
+        overflow: hidden;
+        font-size: 13px;
+      }
+      .nb i {
+        width: 16px;
+        text-align: center;
+        font-size: 13px;
+        flex-shrink: 0;
+      }
+      .nb .nt {
+        flex: 1;
+        font-weight: 500;
+      }
+      .nb .nc {
+        background: var(--bg);
+        color: var(--txm);
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 9px;
+        flex-shrink: 0;
+      }
+      .nb:hover {
+        background: var(--bg);
+        color: var(--tx);
+      }
+      .nb.active {
+        background: linear-gradient(135deg, var(--P), var(--PH));
+        color: #fff;
+      }
+      .nb.active .nc {
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+      }
+      .sidebar.slim .nb .nt,
+      .sidebar.slim .nb .nc {
+        display: none;
+      }
+      .sidebar.slim .nb {
+        justify-content: center;
+        padding: 9px;
+      }
+
+      /* RIGHT */
+      .right {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* HEADER */
+      .header {
+        height: var(--hh);
+        background: var(--card);
+        border-bottom: 1px solid var(--bdr);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 0 18px;
+        flex-shrink: 0;
+        z-index: 40;
+      }
+      .hb {
+        width: 34px;
+        height: 34px;
+        border: none;
+        background: var(--bg);
+        border-radius: 7px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--txm);
+        position: relative;
+        transition: var(--tr);
+        flex-shrink: 0;
+      }
+      .hb:hover {
+        background: var(--P);
+        color: #fff;
+      }
+      .bdg {
+        position: absolute;
+        top: -3px;
+        right: -3px;
+        background: var(--ER);
+        color: #fff;
+        font-size: 9px;
+        min-width: 16px;
+        height: 16px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        padding: 0 3px;
+      }
+      .sw {
+        flex: 1;
+        max-width: 500px;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        background: var(--inp);
+        border: 1.5px solid var(--bdr);
+        border-radius: 8px;
+        padding: 0 12px;
+        transition: var(--tr);
+      }
+      .sw:focus-within {
+        border-color: var(--P);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      .sw i {
+        color: var(--txm);
+        font-size: 12px;
+      }
+      .sw input {
+        flex: 1;
+        border: none;
+        background: none;
+        outline: none;
+        padding: 8px 0;
+        color: var(--tx);
+        font-size: 13px;
+      }
+      .sw input::placeholder {
+        color: var(--txm);
+      }
+      .hr {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 7px;
+      }
+      .av {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--P), var(--S));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        font-weight: 700;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      /* CONTENT */
+      .content {
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 20px 22px;
+      }
+
+      /* PAGES */
+      .page {
+        display: none;
+        height: 100%;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .page.active {
+        display: flex;
+      }
+      .ph {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .phl h1 {
+        font-size: 20px;
+        font-weight: 800;
+        margin-bottom: 2px;
+      }
+      .phl p {
+        color: var(--txm);
+        font-size: 12px;
+      }
+      .phr {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+
+      /* BUTTONS */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 16px;
+        border: none;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: var(--tr);
+        white-space: nowrap;
+      }
+      .btn-p {
+        background: linear-gradient(135deg, var(--P), var(--PH));
+        color: #fff;
+      }
+      .btn-p:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
+      }
+      .btn-g {
+        background: var(--bg);
+        color: var(--tx);
+      }
+      .btn-g:hover {
+        background: var(--bdr);
+      }
+      .btn-ok {
+        background: var(--OK);
+        color: #fff;
+      }
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 11px;
+      }
+
+      /* STATS */
+      .sg {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 12px;
+      }
+      .sc {
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--bdr);
+        padding: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: var(--tr);
+      }
+      .sc:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--sh2);
+      }
+      .sci {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+      }
+      .sib {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--P);
+      }
+      .sig {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .sio {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--WA);
+      }
+      .sir {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--ER);
+      }
+      .sic {
+        background: rgba(6, 182, 212, 0.1);
+        color: var(--IN);
+      }
+      .sip {
+        background: rgba(139, 92, 246, 0.1);
+        color: #8b5cf6;
+      }
+      .scv {
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1;
+      }
+      .scl {
+        color: var(--txm);
+        font-size: 11px;
+        margin-top: 2px;
+      }
+
+      /* GRID */
+      .dg {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 14px;
+        flex: 1;
+        min-height: 0;
+      }
+      @media (max-width: 1050px) {
+        .dg {
+          grid-template-columns: 1fr;
+        }
+        .dp {
+          display: none !important;
+        }
+      }
+
+      /* CARD */
+      .card {
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--bdr);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .ch {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--bdr);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+      .ch h2 {
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .cb {
+        padding: 14px;
+        flex: 1;
+        overflow-y: auto;
+      }
+
+      /* FILTER */
+      .fb {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .fb select {
+        padding: 6px 10px;
+        border: 1px solid var(--bdr);
+        border-radius: 6px;
+        background: var(--inp);
+        color: var(--tx);
+        font-size: 11px;
+        cursor: pointer;
+        outline: none;
+      }
+      .fb select:focus {
+        border-color: var(--P);
+      }
+
+      /* TASK LIST */
+      .tl {
+        overflow-y: auto;
+        flex: 1;
+      }
+      .tr {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--bdr);
+        transition: var(--tr);
+        cursor: pointer;
+        position: relative;
+      }
+      .tr:last-child {
+        border-bottom: none;
+      }
+      .tr:hover {
+        background: var(--bg);
+      }
+      .tr.done {
+        opacity: 0.5;
+      }
+      .tr.ov-r {
+        border-left: 3px solid var(--ER);
+      }
+      .tr.pinned {
+        border-left: 3px solid var(--WA);
+      }
+
+      .chk {
+        width: 19px;
+        height: 19px;
+        border: 2px solid var(--bdr);
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        cursor: pointer;
+        margin-top: 2px;
+        transition: var(--tr);
+      }
+      .chk:hover {
+        border-color: var(--P);
+      }
+      .chk.done {
+        background: var(--OK);
+        border-color: var(--OK);
+        color: #fff;
+      }
+
+      .ti {
+        flex: 1;
+        min-width: 0;
+      }
+      .tn {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .tr.done .tn {
+        text-decoration: line-through;
+        color: var(--txm);
+      }
+      .td {
+        font-size: 11px;
+        color: var(--txm);
+        margin-bottom: 6px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .tf {
+        display: flex;
+        gap: 9px;
+        flex-wrap: wrap;
+        font-size: 10px;
+        color: var(--txm);
+      }
+      .tf i {
+        margin-right: 2px;
+      }
+      .ovt {
+        color: var(--ER) !important;
+        font-weight: 700;
+      }
+      .tag {
+        display: inline-flex;
+        padding: 1px 7px;
+        background: var(--bg);
+        border-radius: 20px;
+        font-size: 9px;
+        color: var(--txm);
+        margin-top: 4px;
+        margin-right: 3px;
+      }
+
+      /* Badges */
+      .pri {
+        padding: 1px 6px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+      .ph- {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--ER);
+      }
+      .pm- {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--WA);
+      }
+      .pl- {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .sb {
+        padding: 1px 8px;
+        border-radius: 20px;
+        font-size: 9px;
+        font-weight: 600;
+      }
+      .sb-p {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--WA);
+      }
+      .sb-i {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--P);
+      }
+      .sb-c {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .pin-badge {
+        color: var(--WA);
+        font-size: 11px;
+      }
+
+      /* Task Actions */
+      .ta {
+        display: flex;
+        gap: 3px;
+        flex-shrink: 0;
+        opacity: 0;
+        transition: opacity 0.2s;
+      }
+      .tr:hover .ta {
+        opacity: 1;
+      }
+      .ab {
+        width: 26px;
+        height: 26px;
+        border: none;
+        border-radius: 5px;
+        background: var(--bg);
+        cursor: pointer;
+        color: var(--txm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition: var(--tr);
+      }
+      .ab:hover {
+        background: var(--P);
+        color: #fff;
+      }
+      .ab.del:hover {
+        background: var(--ER);
+        color: #fff;
+      }
+
+      /* Empty */
+      .empty {
+        padding: 40px 20px;
+        text-align: center;
+        color: var(--txm);
+      }
+      .empty i {
+        font-size: 44px;
+        margin-bottom: 12px;
+        opacity: 0.35;
+        display: block;
+      }
+      .empty h3 {
+        font-size: 16px;
+        margin-bottom: 6px;
+        color: var(--tx);
+      }
+      .empty p {
+        font-size: 12px;
+        margin-bottom: 14px;
+      }
+
+      /* PROGRESS RING */
+      .rw {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        padding: 10px 0;
+      }
+      .rc {
+        position: relative;
+        width: 80px;
+        height: 80px;
+      }
+      .rc svg {
+        transform: rotate(-90deg);
+      }
+      .rm {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+      }
+      .rp {
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .rl {
+        font-size: 9px;
+        color: var(--txm);
+      }
+      .rs {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .rsi {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* ACTIVITY */
+      .al {
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .ai {
+        display: flex;
+        gap: 8px;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--bdr);
+      }
+      .ai:last-child {
+        border-bottom: none;
+      }
+      .aic {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+      }
+      .aic.created {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .aic.updated {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--P);
+      }
+      .aic.deleted {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--ER);
+      }
+      .at {
+        font-size: 11px;
+        margin-bottom: 1px;
+      }
+      .atm {
+        font-size: 9px;
+        color: var(--txm);
+      }
+
+      /* Pills */
+      .pr {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: var(--tr);
+      }
+      .pr:hover {
+        background: var(--bg);
+      }
+      .pdot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+      .pn {
+        flex: 1;
+        font-size: 11px;
+      }
+      .pc {
+        font-size: 10px;
+        color: var(--txm);
+        background: var(--bg);
+        padding: 1px 6px;
+        border-radius: 8px;
+      }
+
+      /* NOTIFICATION DROPDOWN */
+      .ndrop {
+        position: fixed;
+        top: calc(var(--hh)+4px);
+        right: 12px;
+        width: 340px;
+        background: var(--card);
+        border-radius: var(--r);
+        border: 1px solid var(--bdr);
+        box-shadow: var(--sh2);
+        z-index: 999;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(8px);
+        transition: var(--tr);
+      }
+      .ndrop.open {
+        opacity: 1;
+        pointer-events: all;
+        transform: translateY(0);
+      }
+      .ndh {
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--bdr);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .ndh h3 {
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .ndas {
+        display: flex;
+        gap: 6px;
+      }
+      .ndl {
+        font-size: 10px;
+        color: var(--P);
+        cursor: pointer;
+        background: none;
+        border: none;
+      }
+      .ndl:hover {
+        text-decoration: underline;
+      }
+      .ndl.er {
+        color: var(--ER);
+      }
+      .ndls {
+        max-height: 360px;
+        overflow-y: auto;
+      }
+      .ndi {
+        display: flex;
+        gap: 10px;
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--bdr);
+        cursor: pointer;
+        transition: var(--tr);
+      }
+      .ndi:last-child {
+        border-bottom: none;
+      }
+      .ndi:hover {
+        background: var(--bg);
+      }
+      .ndi.unread {
+        background: rgba(79, 70, 229, 0.04);
+      }
+      .ndi.hp {
+        border-left: 3px solid var(--ER);
+      }
+      .ndi.mp {
+        border-left: 3px solid var(--WA);
+      }
+      .ni {
+        width: 34px;
+        height: 34px;
+        border-radius: 7px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+      }
+      .ni.overdue,
+      .ni.upcoming_high {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--ER);
+      }
+      .ni.due_today {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--WA);
+      }
+      .ni.reminder {
+        background: rgba(79, 70, 229, 0.1);
+        color: var(--P);
+      }
+      .ni.created {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .nt2 {
+        flex: 1;
+        min-width: 0;
+      }
+      .nm {
+        font-size: 12px;
+        margin-bottom: 2px;
+        line-height: 1.4;
+      }
+      .ntm {
+        font-size: 9px;
+        color: var(--txm);
+      }
+      .nde {
+        padding: 30px;
+        text-align: center;
+        color: var(--txm);
+        font-size: 12px;
+      }
+      .nde i {
+        font-size: 26px;
+        margin-bottom: 6px;
+        display: block;
+      }
+
+      /* MODAL */
+      .ov {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 600;
+        opacity: 0;
+        pointer-events: none;
+        transition: var(--tr);
+      }
+      .ov.open {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .modal {
+        background: var(--card);
+        border-radius: 14px;
+        width: 92%;
+        max-width: 540px;
+        max-height: 92vh;
+        display: flex;
+        flex-direction: column;
+        transform: scale(0.94);
+        transition: var(--tr);
+      }
+      .ov.open .modal {
+        transform: scale(1);
+      }
+      .mh {
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--bdr);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+      }
+      .mh h2 {
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .mc {
+        width: 30px;
+        height: 30px;
+        border: none;
+        background: var(--bg);
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--txm);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: var(--tr);
+      }
+      .mc:hover {
+        background: var(--ER);
+        color: #fff;
+      }
+      .mb {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .mf {
+        padding: 12px 20px;
+        border-top: 1px solid var(--bdr);
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        flex-shrink: 0;
+      }
+
+      /* FORM */
+      .fg {
+        margin-bottom: 14px;
+      }
+      .fl {
+        display: block;
+        font-size: 11px;
+        font-weight: 700;
+        margin-bottom: 5px;
+      }
+      .fl span {
+        color: var(--ER);
+      }
+      .fi,
+      .fs,
+      .fta {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1.5px solid var(--bdr);
+        border-radius: 7px;
+        background: var(--inp);
+        color: var(--tx);
+        font-size: 13px;
+        outline: none;
+        transition: var(--tr);
+      }
+      .fi:focus,
+      .fs:focus,
+      .fta:focus {
+        border-color: var(--P);
+        box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+      }
+      .fta {
+        min-height: 70px;
+        resize: vertical;
+      }
+      .fr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 11px;
+      }
+      @media (max-width: 480px) {
+        .fr {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* TOAST */
+      .tw {
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        z-index: 2000;
+      }
+      .toast {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--card);
+        border-radius: 9px;
+        padding: 12px 15px;
+        box-shadow: var(--sh2);
+        min-width: 260px;
+        border-left: 4px solid var(--P);
+        animation: tin 0.25s ease;
+      }
+      .toast.ok {
+        border-left-color: var(--OK);
+      }
+      .toast.er {
+        border-left-color: var(--ER);
+      }
+      .toast.wa {
+        border-left-color: var(--WA);
+      }
+      .tii {
+        font-size: 16px;
+      }
+      .toast.ok .tii {
+        color: var(--OK);
+      }
+      .toast.er .tii {
+        color: var(--ER);
+      }
+      .toast.wa .tii {
+        color: var(--WA);
+      }
+      .tmsg {
+        flex: 1;
+        font-size: 13px;
+      }
+      .tcl {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--txm);
+        font-size: 14px;
+      }
+      @keyframes tin {
+        from {
+          opacity: 0;
+          transform: translateX(50px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+
+      /* ALERT POPUP — priority based */
+      .ap {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        width: 330px;
+        background: var(--card);
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.22);
+        border: 1px solid var(--bdr);
+        z-index: 3000;
+        overflow: hidden;
+        transform: translateY(120%);
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .ap.show {
+        transform: translateY(0);
+      }
+      .ap-str {
+        height: 4px;
+        width: 100%;
+      }
+      .ap-str.high {
+        background: linear-gradient(90deg, var(--ER), #ff8a80);
+      }
+      .ap-str.medium {
+        background: linear-gradient(90deg, var(--WA), #ffe57f);
+      }
+      .ap-str.low {
+        background: linear-gradient(90deg, var(--OK), #69f0ae);
+      }
+      .ap-str.created {
+        background: linear-gradient(90deg, var(--P), var(--PL));
+      }
+      .ap-b {
+        padding: 14px 16px;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+      }
+      .ap-i {
+        width: 40px;
+        height: 40px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+      }
+      .ap-i.high {
+        background: rgba(239, 68, 68, 0.12);
+        color: var(--ER);
+      }
+      .ap-i.medium {
+        background: rgba(245, 158, 11, 0.12);
+        color: var(--WA);
+      }
+      .ap-i.low {
+        background: rgba(34, 197, 94, 0.12);
+        color: var(--OK);
+      }
+      .ap-i.created {
+        background: rgba(79, 70, 229, 0.12);
+        color: var(--P);
+      }
+      .ap-t {
+        flex: 1;
+        min-width: 0;
+      }
+      .ap-tt {
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 3px;
+      }
+      .ap-mg {
+        font-size: 11px;
+        color: var(--txm);
+        line-height: 1.4;
+      }
+      .ap-pri {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 9px;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 5px;
+      }
+      .ap-pri.high {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--ER);
+      }
+      .ap-pri.medium {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--WA);
+      }
+      .ap-pri.low {
+        background: rgba(34, 197, 94, 0.1);
+        color: var(--OK);
+      }
+      .ap-cl {
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: var(--bg);
+        border-radius: 5px;
+        cursor: pointer;
+        color: var(--txm);
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition: var(--tr);
+      }
+      .ap-cl:hover {
+        background: var(--ER);
+        color: #fff;
+      }
+      .ap-pg {
+        height: 2px;
+        background: var(--bdr);
+      }
+      .ap-bar {
+        height: 100%;
+        background: var(--P);
+        width: 100%;
+      }
+      .ap-ft {
+        padding: 8px 16px;
+        border-top: 1px solid var(--bdr);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .ap-tm {
+        font-size: 9px;
+        color: var(--txm);
+      }
+      .ap-ac {
+        display: flex;
+        gap: 6px;
+      }
+      .ap-btn {
+        font-size: 10px;
+        cursor: pointer;
+        font-weight: 600;
+        background: none;
+        border: none;
+        padding: 4px 10px;
+        border-radius: 5px;
+        transition: var(--tr);
+      }
+      .ap-btn.snz {
+        background: var(--bg);
+        color: var(--tx);
+      }
+      .ap-btn.snz:hover {
+        background: var(--bdr);
+      }
+      .ap-btn.view {
+        color: var(--P);
+      }
+      .ap-btn.view:hover {
+        text-decoration: underline;
+      }
+
+      /* Settings form in modal */
+      .set-sec {
+        margin-bottom: 22px;
+      }
+      .set-sec h3 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--bdr);
+      }
+      .set-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--bdr);
+      }
+      .set-row:last-child {
+        border-bottom: none;
+      }
+      .set-info h4 {
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+      .set-info p {
+        font-size: 10px;
+        color: var(--txm);
+      }
+      .toggle {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        flex-shrink: 0;
+      }
+      .toggle input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .tsl {
+        position: absolute;
+        cursor: pointer;
+        inset: 0;
+        background: var(--bdr);
+        border-radius: 24px;
+        transition: var(--tr);
+      }
+      .tsl::before {
+        position: absolute;
+        content: "";
+        width: 18px;
+        height: 18px;
+        left: 3px;
+        bottom: 3px;
+        background: #fff;
+        border-radius: 50%;
+        transition: var(--tr);
+      }
+      .toggle input:checked + .tsl {
+        background: var(--P);
+      }
+      .toggle input:checked + .tsl::before {
+        transform: translateX(20px);
+      }
+
+      @media (max-width: 768px) {
+        .sidebar {
+          position: fixed;
+          left: -100%;
+          transition: left 0.3s;
+          z-index: 200;
+        }
+        .sidebar.mob {
+          left: 0;
+        }
+        .content {
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        <div class="sb-brand">
+          <div class="sb-logo"><i class="fas fa-layer-group"></i></div>
+          <span class="sb-name">TaskPro</span>
+        </div>
+        <nav class="sb-nav">
+          <div class="ns">
+            <div class="nsl">MAIN</div>
+            <button
+              class="nb active"
+              data-page="dashboard"
+              onclick="go('dashboard', this)"
+            >
+              <i class="fas fa-th-large"></i><span class="nt">Dashboard</span>
+            </button>
+            <button class="nb" data-page="all" onclick="go('all', this)">
+              <i class="fas fa-list-check"></i><span class="nt">All Tasks</span
+              ><span class="nc" id="nc-all">0</span>
+            </button>
+            <button class="nb" data-page="today" onclick="go('today', this)">
+              <i class="fas fa-calendar-day"></i
+              ><span class="nt">Due Today</span
+              ><span class="nc" id="nc-today">0</span>
+            </button>
+            <button
+              class="nb"
+              data-page="upcoming"
+              onclick="go('upcoming', this)"
+            >
+              <i class="fas fa-calendar-week"></i
+              ><span class="nt">Upcoming</span>
+            </button>
+            <button
+              class="nb"
+              data-page="overdue"
+              onclick="go('overdue', this)"
+            >
+              <i class="fas fa-exclamation-circle"></i
+              ><span class="nt">Overdue</span
+              ><span
+                class="nc"
+                id="nc-ov"
+                style="background: var(--ER); color: #fff"
+                >0</span
+              >
+            </button>
+            <button
+              class="nb"
+              data-page="completed"
+              onclick="go('completed', this)"
+            >
+              <i class="fas fa-check-double"></i
+              ><span class="nt">Completed</span>
+            </button>
+            <button class="nb" data-page="pinned" onclick="go('pinned', this)">
+              <i class="fas fa-thumbtack"></i><span class="nt">Pinned</span
+              ><span class="nc" id="nc-pin">0</span>
+            </button>
+          </div>
+          <div class="ns">
+            <div class="nsl">CATEGORIES</div>
+            <div id="sbC"></div>
+          </div>
+          <div class="ns">
+            <div class="nsl">PROJECTS</div>
+            <div id="sbP"></div>
+            <button class="nb" onclick="openProjM()">
+              <i class="fas fa-plus"></i><span class="nt">New Project</span>
+            </button>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- RIGHT -->
+      <div class="right">
+        <header class="header">
+          <button class="hb" onclick="toggleSB()">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="sw">
+            <i class="fas fa-search"></i
+            ><input
+              id="srch"
+              placeholder="Search… (Ctrl+K)"
+              oninput="onSrch()"
+            />
+          </div>
+          <div class="hr">
+            <button class="hb" onclick="toggleTheme()" title="Theme">
+              <i class="fas fa-moon" id="thI"></i>
+            </button>
+            <button class="hb" id="bellBtn" onclick="toggleND()">
+              <i class="fas fa-bell"></i
+              ><span class="bdg" id="nBdg" style="display: none">0</span>
+            </button>
+            <button class="hb" onclick="openSettings()" title="Settings">
+              <i class="fas fa-cog"></i>
+            </button>
+            <button class="hb" onclick="openEI()" title="Import/Export">
+              <i class="fas fa-database"></i>
+            </button>
+            <div class="av">JD</div>
+          </div>
+        </header>
+
+        <!-- NOTIF DROPDOWN -->
+        <div class="ndrop" id="nDrop">
+          <div class="ndh">
+            <h3>
+              <i
+                class="fas fa-bell"
+                style="margin-right: 6px; color: var(--WA)"
+              ></i
+              >Notifications
+            </h3>
+            <div class="ndas">
+              <button class="ndl" onclick="markAll()">Read all</button
+              ><button class="ndl er" onclick="clearR()">Clear read</button>
+            </div>
+          </div>
+          <div class="ndls" id="nList"></div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+          <!-- DASHBOARD -->
+          <div class="page active" id="page-dashboard">
+            <div class="ph">
+              <div class="phl">
+                <h1 id="greet">Good Morning 👋</h1>
+                <p>Overview for <strong id="tDate"></strong></p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-g" onclick="loadAll()">
+                  <i class="fas fa-sync"></i> Refresh
+                </button>
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="sg">
+              <div class="sc">
+                <div class="sci sib"><i class="fas fa-tasks"></i></div>
+                <div>
+                  <div class="scv" id="s-t">0</div>
+                  <div class="scl">Total</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sig"><i class="fas fa-check-circle"></i></div>
+                <div>
+                  <div class="scv" id="s-d">0</div>
+                  <div class="scl">Done</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sio"><i class="fas fa-spinner"></i></div>
+                <div>
+                  <div class="scv" id="s-p">0</div>
+                  <div class="scl">Progress</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sir">
+                  <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div>
+                  <div class="scv" id="s-o">0</div>
+                  <div class="scl">Overdue</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sic"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                  <div class="scv" id="s-td">0</div>
+                  <div class="scl">Due Today</div>
+                </div>
+              </div>
+              <div class="sc">
+                <div class="sci sip"><i class="fas fa-fire"></i></div>
+                <div>
+                  <div class="scv" id="s-hp">0</div>
+                  <div class="scl">High Priority</div>
+                </div>
+              </div>
+            </div>
+            <div class="dg" style="flex: 1; min-height: 0">
+              <div class="card" style="min-height: 0">
+                <div class="ch">
+                  <h2>📋 Tasks</h2>
+                  <div class="fb">
+                    <select id="d-st" onchange="rDash()">
+                      <option value="">All Status</option>
+                      <option value="pending">Pending</option>
+                      <option value="in_progress">In Progress</option>
+                      <option value="completed">Done</option>
+                    </select>
+                    <select id="d-pr" onchange="rDash()">
+                      <option value="">All Priority</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="tl" id="dList"></div>
+              </div>
+              <div
+                class="dp"
+                style="
+                  display: flex;
+                  flex-direction: column;
+                  gap: 12px;
+                  overflow-y: auto;
+                "
+              >
+                <div class="card">
+                  <div class="ch"><h2>📊 Progress</h2></div>
+                  <div class="cb">
+                    <div class="rw">
+                      <div class="rc">
+                        <svg width="80" height="80" viewBox="0 0 80 80">
+                          <circle
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            fill="none"
+                            stroke="var(--bdr)"
+                            stroke-width="8"
+                          />
+                          <circle
+                            id="rC"
+                            cx="40"
+                            cy="40"
+                            r="34"
+                            fill="none"
+                            stroke="var(--P)"
+                            stroke-width="8"
+                            stroke-linecap="round"
+                            stroke-dasharray="214"
+                            stroke-dashoffset="214"
+                            style="transition: stroke-dashoffset 0.6s"
+                          />
+                        </svg>
+                        <div class="rm">
+                          <div class="rp" id="rPct">0%</div>
+                          <div class="rl">done</div>
+                        </div>
+                      </div>
+                      <div class="rs">
+                        <div class="rsi">
+                          <span class="dot" style="background: var(--OK)"></span
+                          ><span>Done: <b id="rD">0</b></span>
+                        </div>
+                        <div class="rsi">
+                          <span class="dot" style="background: var(--P)"></span
+                          ><span>Progress: <b id="rI">0</b></span>
+                        </div>
+                        <div class="rsi">
+                          <span class="dot" style="background: var(--WA)"></span
+                          ><span>Pending: <b id="rPn">0</b></span>
+                        </div>
+                        <div class="rsi">
+                          <span class="dot" style="background: var(--ER)"></span
+                          ><span>Overdue: <b id="rO">0</b></span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="ch">
+                    <h2>📁 Categories</h2>
+                    <button class="btn btn-g btn-sm" onclick="openCatM()">
+                      <i class="fas fa-plus"></i>
+                    </button>
+                  </div>
+                  <div class="cb" style="padding: 8px 10px">
+                    <div id="cP"></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <div class="ch"><h2>🕑 Activity</h2></div>
+                  <div class="cb" style="padding: 8px 12px">
+                    <div class="al" id="aList"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ALL PAGE -->
+          <div class="page" id="page-all">
+            <div class="ph">
+              <div class="phl">
+                <h1>All Tasks</h1>
+                <p>Manage all tasks</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1; min-height: 0">
+              <div class="ch">
+                <div class="fb">
+                  <select id="a-st" onchange="rAll()">
+                    <option value="">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Done</option>
+                  </select>
+                  <select id="a-pr" onchange="rAll()">
+                    <option value="">All Priority</option>
+                    <option value="high">High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                  <select id="a-ca" onchange="rAll()">
+                    <option value="">All Categories</option>
+                  </select>
+                  <select id="a-pj" onchange="rAll()">
+                    <option value="">All Projects</option>
+                  </select>
+                  <select id="a-so" onchange="rAll()">
+                    <option value="created_at">Newest</option>
+                    <option value="due_date">Due Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="title">Title</option>
+                  </select>
+                </div>
+              </div>
+              <div class="tl" id="aL" style="flex: 1"></div>
+            </div>
+          </div>
+
+          <!-- TODAY -->
+          <div class="page" id="page-today">
+            <div class="ph">
+              <div class="phl">
+                <h1>Due Today</h1>
+                <p>Tasks for today</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="tL" style="flex: 1"></div>
+            </div>
+          </div>
+          <!-- UPCOMING -->
+          <div class="page" id="page-upcoming">
+            <div class="ph">
+              <div class="phl">
+                <h1>Upcoming</h1>
+                <p>Next 7 days</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="uL" style="flex: 1"></div>
+            </div>
+          </div>
+          <!-- OVERDUE -->
+          <div class="page" id="page-overdue">
+            <div class="ph">
+              <div class="phl">
+                <h1>⚠️ Overdue</h1>
+                <p>Past due date</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="oL" style="flex: 1"></div>
+            </div>
+          </div>
+          <!-- COMPLETED -->
+          <div class="page" id="page-completed">
+            <div class="ph">
+              <div class="phl">
+                <h1>✅ Completed</h1>
+                <p>Finished tasks</p>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="cL" style="flex: 1"></div>
+            </div>
+          </div>
+          <!-- PINNED -->
+          <div class="page" id="page-pinned">
+            <div class="ph">
+              <div class="phl">
+                <h1>📌 Pinned</h1>
+                <p>Your pinned tasks</p>
+              </div>
+              <div class="phr">
+                <button class="btn btn-p" onclick="openTM()">
+                  <i class="fas fa-plus"></i> New Task
+                </button>
+              </div>
+            </div>
+            <div class="card" style="flex: 1">
+              <div class="tl" id="pnL" style="flex: 1"></div>
+            </div>
+          </div>
+        </div>
+        <!-- content -->
+      </div>
+      <!-- right -->
+    </div>
+    <!-- app -->
+
+    <!-- ALERT POPUP -->
+    <div class="ap" id="aP">
+      <div class="ap-str" id="apS"></div>
+      <div class="ap-b">
+        <div class="ap-i" id="apI"><i class="fas fa-bell" id="apIi"></i></div>
+        <div class="ap-t">
+          <div class="ap-tt" id="apTt">Notification</div>
+          <div class="ap-mg" id="apMg">Update</div>
+          <div class="ap-pri" id="apPri">MEDIUM</div>
+        </div>
+        <button class="ap-cl" onclick="closeAP()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="ap-pg"><div class="ap-bar" id="apBar"></div></div>
+      <div class="ap-ft">
+        <span class="ap-tm" id="apTm">Just now</span>
+        <div class="ap-ac">
+          <button class="ap-btn snz" id="apSnz" onclick="snoozeAP()">
+            <i class="fas fa-clock"></i> Snooze
+          </button>
+          <button class="ap-btn view" onclick="closeAP()">Dismiss</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TASK MODAL -->
+    <div class="ov" id="tOv">
+      <div class="modal">
+        <div class="mh">
+          <h2 id="mTi">New Task</h2>
+          <button class="mc" onclick="closeTM()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb">
+          <input type="hidden" id="f-id" />
+          <div class="fg">
+            <label class="fl">Title <span>*</span></label
+            ><input
+              class="fi"
+              id="f-title"
+              placeholder="What needs to be done?"
+            />
+          </div>
+          <div class="fg">
+            <label class="fl">Description</label
+            ><textarea class="fta" id="f-desc"></textarea>
+          </div>
+          <div class="fr">
+            <div class="fg">
+              <label class="fl">Category</label
+              ><select class="fs" id="f-cat"></select>
+            </div>
+            <div class="fg">
+              <label class="fl">Priority</label
+              ><select class="fs" id="f-pri">
+                <option value="low">🟢 Low</option>
+                <option value="medium" selected>🟡 Medium</option>
+                <option value="high">🔴 High</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="fg">
+              <label class="fl">Due Date</label
+              ><input type="date" class="fi" id="f-date" />
+            </div>
+            <div class="fg">
+              <label class="fl">Due Time</label
+              ><input type="time" class="fi" id="f-time" />
+            </div>
+          </div>
+          <div class="fr">
+            <div class="fg">
+              <label class="fl">Status</label
+              ><select class="fs" id="f-status">
+                <option value="pending">⏳ Pending</option>
+                <option value="in_progress">🔄 In Progress</option>
+                <option value="completed">✅ Completed</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Remind Before</label
+              ><select class="fs" id="f-rem">
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="30" selected>30 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="1440">1 day</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <div class="fg">
+              <label class="fl">Project</label
+              ><select class="fs" id="f-proj">
+                <option value="">None</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Assigned To</label
+              ><input class="fi" id="f-asn" placeholder="Name" />
+            </div>
+          </div>
+          <div class="fr">
+            <div class="fg">
+              <label class="fl">Progress %</label
+              ><input
+                type="number"
+                class="fi"
+                id="f-prog"
+                min="0"
+                max="100"
+                value="0"
+              />
+            </div>
+            <div class="fg">
+              <label class="fl">Est. Hours</label
+              ><input
+                type="number"
+                class="fi"
+                id="f-est"
+                min="0"
+                step="0.5"
+                value="0"
+              />
+            </div>
+          </div>
+          <div class="fg" style="display: flex; align-items: center; gap: 8px">
+            <input type="checkbox" id="f-pin" /><label
+              for="f-pin"
+              style="font-size: 13px; cursor: pointer"
+              ><i
+                class="fas fa-thumbtack"
+                style="margin-right: 4px; color: var(--WA)"
+              ></i
+              >Pin this task</label
+            >
+          </div>
+          <div class="fg">
+            <label class="fl"
+              >Tags
+              <small style="color: var(--txm); font-weight: 400"
+                >(comma separated)</small
+              ></label
+            ><input class="fi" id="f-tags" placeholder="urgent, client" />
+          </div>
+          <div class="fg">
+            <label class="fl">Notes</label
+            ><textarea class="fta" id="f-notes"></textarea>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closeTM()">Cancel</button
+          ><button class="btn btn-p" onclick="saveT()">
+            <i class="fas fa-save"></i> Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CATEGORY MODAL -->
+    <div class="ov" id="cOv">
+      <div class="modal" style="max-width: 340px">
+        <div class="mh">
+          <h2>New Category</h2>
+          <button class="mc" onclick="closeCM()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb">
+          <div class="fg">
+            <label class="fl">Name <span>*</span></label
+            ><input class="fi" id="cn" />
+          </div>
+          <div class="fg">
+            <label class="fl">Color</label
+            ><input
+              type="color"
+              class="fi"
+              id="cc"
+              value="#4f46e5"
+              style="height: 40px; padding: 4px"
+            />
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closeCM()">Cancel</button
+          ><button class="btn btn-p" onclick="saveCat()">
+            <i class="fas fa-save"></i> Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROJECT MODAL -->
+    <div class="ov" id="pOv">
+      <div class="modal" style="max-width: 360px">
+        <div class="mh">
+          <h2>New Project</h2>
+          <button class="mc" onclick="closePM()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb">
+          <div class="fg">
+            <label class="fl">Name <span>*</span></label
+            ><input class="fi" id="pn" />
+          </div>
+          <div class="fg">
+            <label class="fl">Color</label
+            ><input
+              type="color"
+              class="fi"
+              id="pc"
+              value="#0ea5e9"
+              style="height: 40px; padding: 4px"
+            />
+          </div>
+          <div class="fg">
+            <label class="fl">Description</label
+            ><textarea class="fta" id="pd" style="min-height: 60px"></textarea>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closePM()">Cancel</button
+          ><button class="btn btn-p" onclick="saveProj()">
+            <i class="fas fa-save"></i> Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="ov" id="sOv">
+      <div class="modal" style="max-width: 500px">
+        <div class="mh">
+          <h2>
+            <i class="fas fa-cog" style="margin-right: 7px; color: var(--P)"></i
+            >Settings
+          </h2>
+          <button class="mc" onclick="closeSM()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="mb">
+          <div class="set-sec">
+            <h3>🔔 Notification Settings</h3>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Sound Alerts</h4>
+                <p>Play chime sound with notifications</p>
+              </div>
+              <label class="toggle"
+                ><input
+                  type="checkbox"
+                  id="s-sound"
+                  checked
+                  onchange="saveSet()" /><span class="tsl"></span
+              ></label>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Popup Alerts</h4>
+                <p>Show in-app popup for notifications</p>
+              </div>
+              <label class="toggle"
+                ><input
+                  type="checkbox"
+                  id="s-popup"
+                  checked
+                  onchange="saveSet()" /><span class="tsl"></span
+              ></label>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Browser Notifications</h4>
+                <p>OS-level push notifications</p>
+              </div>
+              <label class="toggle"
+                ><input
+                  type="checkbox"
+                  id="s-browser"
+                  checked
+                  onchange="saveSet()" /><span class="tsl"></span
+              ></label>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Check Interval</h4>
+                <p>How often to check for notifications (seconds)</p>
+              </div>
+              <select
+                class="fs"
+                id="s-interval"
+                style="width: 100px"
+                onchange="saveSet()"
+              >
+                <option value="15">15s</option>
+                <option value="30">30s</option>
+                <option value="60">60s</option>
+                <option value="120">2 min</option>
+              </select>
+            </div>
+          </div>
+          <div class="set-sec">
+            <h3>⏰ Default Reminders (by Priority)</h3>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🔴 High Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
+              <select
+                class="fs"
+                id="s-rh"
+                style="width: 120px"
+                onchange="saveSet()"
+              >
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🟡 Medium Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
+              <select
+                class="fs"
+                id="s-rm"
+                style="width: 120px"
+                onchange="saveSet()"
+              >
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🟢 Low Priority</h4>
+                <p>Reminder before due time</p>
+              </div>
+              <select
+                class="fs"
+                id="s-rl"
+                style="width: 120px"
+                onchange="saveSet()"
+              >
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="1440">1 day</option>
+              </select>
+            </div>
+          </div>
+          <div class="set-sec">
+            <h3>🪟 Popup Duration (by Priority)</h3>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🔴 High Priority</h4>
+                <p>Popup stays on screen (seconds)</p>
+              </div>
+              <select
+                class="fs"
+                id="s-dh"
+                style="width: 100px"
+                onchange="saveSet()"
+              >
+                <option value="8">8s</option>
+                <option value="10">10s</option>
+                <option value="12">12s</option>
+                <option value="15">15s</option>
+                <option value="20">20s</option>
+                <option value="0">Until dismissed</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🟡 Medium Priority</h4>
+                <p>Popup stays on screen (seconds)</p>
+              </div>
+              <select
+                class="fs"
+                id="s-dm"
+                style="width: 100px"
+                onchange="saveSet()"
+              >
+                <option value="5">5s</option>
+                <option value="8">8s</option>
+                <option value="10">10s</option>
+                <option value="12">12s</option>
+              </select>
+            </div>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>🟢 Low Priority</h4>
+                <p>Popup stays on screen (seconds)</p>
+              </div>
+              <select
+                class="fs"
+                id="s-dl"
+                style="width: 100px"
+                onchange="saveSet()"
+              >
+                <option value="3">3s</option>
+                <option value="5">5s</option>
+                <option value="8">8s</option>
+              </select>
+            </div>
+          </div>
+          <div class="set-sec">
+            <h3>🔄 Snooze</h3>
+            <div class="set-row">
+              <div class="set-info">
+                <h4>Auto Snooze Duration</h4>
+                <p>How long to snooze when clicked</p>
+              </div>
+              <select
+                class="fs"
+                id="s-snz"
+                style="width: 120px"
+                onchange="saveSet()"
+              >
+                <option value="5">5 min</option>
+                <option value="10">10 min</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-p" onclick="closeSM()">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT/IMPORT -->
+    <div class="ov" id="eOv">
+      <div class="modal" style="max-width: 380px">
+        <div class="mh">
+          <h2>
+            <i
+              class="fas fa-database"
+              style="margin-right: 7px; color: var(--P)"
+            ></i
+            >Data
+          </h2>
+          <button class="mc" onclick="closeEI()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div
+          class="mb"
+          style="display: flex; flex-direction: column; gap: 12px"
+        >
+          <div style="background: var(--bg); border-radius: 9px; padding: 14px">
+            <h3 style="font-size: 13px; margin-bottom: 6px">
+              <i
+                class="fas fa-download"
+                style="color: var(--OK); margin-right: 6px"
+              ></i
+              >Export
+            </h3>
+            <p style="color: var(--txm); font-size: 11px; margin-bottom: 10px">
+              Download backup
+            </p>
+            <button class="btn btn-ok btn-sm" onclick="doExport()">
+              <i class="fas fa-download"></i> Export
+            </button>
+          </div>
+          <div style="background: var(--bg); border-radius: 9px; padding: 14px">
+            <h3 style="font-size: 13px; margin-bottom: 6px">
+              <i
+                class="fas fa-upload"
+                style="color: var(--P); margin-right: 6px"
+              ></i
+              >Import
+            </h3>
+            <p style="color: var(--txm); font-size: 11px; margin-bottom: 10px">
+              Restore from JSON
+            </p>
+            <input
+              type="file"
+              id="impF"
+              accept=".json"
+              style="display: none"
+              onchange="doImport(event)"
+            /><button
+              class="btn btn-p btn-sm"
+              onclick="document.getElementById('impF').click()"
+            >
+              <i class="fas fa-upload"></i> Choose File
+            </button>
+          </div>
+        </div>
+        <div class="mf">
+          <button class="btn btn-g" onclick="closeEI()">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tw" id="tw"></div>
+
+    <script>
+      const A = "http://127.0.0.1:5000/api";
+      let allT = [],
+        cats = [],
+        projs = [],
+        stats = {},
+        notifs = [],
+        settings = {};
+      let cur = "dashboard",
+        knownN = new Set(),
+        aQ = [],
+        aSh = false,
+        aTimer = null,
+        pollTimer = null;
+
+      // INIT
+      document.addEventListener("DOMContentLoaded", () => {
+        setGreet();
+        loadTheme();
+        loadAll();
+        reqNP();
+      });
+
+      async function loadAll() {
+        await Promise.all([fT(), fC(), fP(), fS(), fN(), fSet()]);
+        render();
+        renderSB();
+        renderAct();
+        startPoll();
+      }
+
+      // API
+      async function api(p, m = "GET", b = null) {
+        try {
+          const o = {
+            method: m,
+            headers: { "Content-Type": "application/json" },
+          };
+          if (b) o.body = JSON.stringify(b);
+          const r = await fetch(A + p, o);
+          return await r.json();
+        } catch (e) {
+          console.error(e);
+          toast("Connection error", "er");
+          return null;
+        }
+      }
+      async function fT() {
+        allT = (await api("/tasks?sort=created_at&order=desc")) || [];
+      }
+      async function fC() {
+        cats = (await api("/categories")) || [];
+      }
+      async function fP() {
+        projs = (await api("/projects")) || [];
+      }
+      async function fS() {
+        stats = (await api("/statistics")) || {};
+      }
+      async function fN() {
+        notifs = (await api("/notifications")) || [];
+        updateBdg();
+        renderNL();
+      }
+      async function fSet() {
+        settings = (await api("/settings")) || {};
+        // Apply to UI
+        $("s-sound").checked = settings.sound_enabled !== 0;
+        $("s-popup").checked = settings.popup_enabled !== 0;
+        $("s-browser").checked = settings.browser_notif_enabled !== 0;
+        $("s-interval").value = settings.check_interval_secs || 30;
+        $("s-rh").value = settings.default_reminder_high || 15;
+        $("s-rm").value = settings.default_reminder_medium || 30;
+        $("s-rl").value = settings.default_reminder_low || 60;
+        $("s-dh").value = settings.popup_duration_high || 12;
+        $("s-dm").value = settings.popup_duration_medium || 8;
+        $("s-dl").value = settings.popup_duration_low || 5;
+        $("s-snz").value = settings.auto_snooze_mins || 10;
+      }
+
+      async function saveSet() {
+        const d = {
+          sound_enabled: $("s-sound").checked ? 1 : 0,
+          popup_enabled: $("s-popup").checked ? 1 : 0,
+          browser_notif_enabled: $("s-browser").checked ? 1 : 0,
+          check_interval_secs: +$("s-interval").value,
+          default_reminder_high: +$("s-rh").value,
+          default_reminder_medium: +$("s-rm").value,
+          default_reminder_low: +$("s-rl").value,
+          popup_duration_high: +$("s-dh").value,
+          popup_duration_medium: +$("s-dm").value,
+          popup_duration_low: +$("s-dl").value,
+          auto_snooze_mins: +$("s-snz").value,
+        };
+        settings = (await api("/settings", "PUT", d)) || settings;
+        startPoll();
+        toast("Settings saved ✅", "ok");
+      }
+
+      // POLLING
+      function startPoll() {
+        if (pollTimer) clearInterval(pollTimer);
+        const iv = (settings.check_interval_secs || 30) * 1000;
+        pollTimer = setInterval(pollN, iv);
+      }
+
+      async function pollN() {
+        const nw = (await api("/notifications/new")) || [];
+        const fresh = nw.filter((n) => !knownN.has(n.id));
+        fresh.forEach((n) => {
+          knownN.add(n.id);
+          aQ.push(n);
+        });
+        if (fresh.length) {
+          await fN();
+          processQ();
+        }
+      }
+
+      function processQ() {
+        if (aSh || !aQ.length) return;
+        const n = aQ.shift();
+        const pri = n.priority || n.task_priority || "medium";
+        if (settings.popup_enabled !== 0) showAP(n, pri);
+      }
+
+      function showAP(n, pri) {
+        aSh = true;
+        clearTimeout(aTimer);
+        const ap = $("aP"),
+          s = $("apS"),
+          ic = $("apI"),
+          ii = $("apIi");
+        const tt = $("apTt"),
+          mg = $("apMg"),
+          pr = $("apPri");
+        const bar = $("apBar"),
+          tm = $("apTm"),
+          snz = $("apSnz");
+
+        const cfg = {
+          overdue: { t: "⚠️ OVERDUE", i: "fa-exclamation-circle" },
+          due_today: { t: "📅 Due Today", i: "fa-calendar-check" },
+          reminder: { t: "🔔 Reminder", i: "fa-bell" },
+          upcoming_high: { t: "🔴 High Priority Tomorrow", i: "fa-fire" },
+          created: { t: "✅ Task Created", i: "fa-check-circle" },
+        }[n.type] || { t: "🔔 Notification", i: "fa-bell" };
+
+        s.className = "ap-str " + (n.type === "created" ? "created" : pri);
+        ic.className = "ap-i " + (n.type === "created" ? "created" : pri);
+        ii.className = "fas " + cfg.i;
+        tt.textContent = cfg.t;
+        mg.textContent = n.message || n.task_title || "Update";
+        pr.className = "ap-pri " + pri;
+        pr.innerHTML = `<i class="fas ${pri === "high" ? "fa-fire" : pri === "medium" ? "fa-bolt" : "fa-leaf"}"></i> ${pri.toUpperCase()} PRIORITY`;
+        tm.textContent = timeAgo(n.created_at);
+        snz.style.display = n.task_id ? "inline-flex" : "none";
+        snz.onclick = () => snoozeTask(n.task_id);
+
+        // Duration based on priority
+        const dur =
+          {
+            high: settings.popup_duration_high || 12,
+            medium: settings.popup_duration_medium || 8,
+            low: settings.popup_duration_low || 5,
+          }[pri] || 8;
+
+        bar.style.animation = "none";
+        bar.offsetHeight;
+        bar.style.animation =
+          dur > 0 ? `shrink ${dur}s linear forwards` : "none";
+
+        ap.classList.add("show");
+        if (settings.sound_enabled !== 0) playSound(pri);
+        if (settings.browser_notif_enabled !== 0)
+          sendBN(cfg.t, n.message || n.task_title || "Update");
+
+        if (dur > 0) {
+          aTimer = setTimeout(() => {
+            closeAP();
+            setTimeout(processQ, 400);
+          }, dur * 1000);
+        }
+      }
+
+      function closeAP() {
+        $("aP").classList.remove("show");
+        clearTimeout(aTimer);
+        setTimeout(() => {
+          aSh = false;
+          processQ();
+        }, 350);
+      }
+
+      async function snoozeTask(tid) {
+        if (!tid) return;
+        const mins = settings.auto_snooze_mins || 10;
+        await api(`/tasks/${tid}/snooze`, "PUT", { minutes: mins });
+        closeAP();
+        toast(`Snoozed for ${mins} minutes`, "wa");
+      }
+      window.snoozeAP = function () {
+        const snzBtn = $("apSnz");
+        if (snzBtn && snzBtn._tid) snoozeTask(snzBtn._tid);
+        else closeAP();
+      };
+
+      // BROWSER NOTIF
+      function reqNP() {
+        if ("Notification" in window && Notification.permission === "default")
+          Notification.requestPermission();
+      }
+      function sendBN(t, b) {
+        if ("Notification" in window && Notification.permission === "granted") {
+          const n = new Notification("TaskPro — " + t, {
+            body: b,
+            icon: "https://cdn-icons-png.flaticon.com/512/906/906175.png",
+          });
+          n.onclick = () => {
+            window.focus();
+            n.close();
+          };
+        }
+      }
+
+      // SOUND — priority-based
+      let actx = null;
+      function getAC() {
+        if (!actx)
+          actx = new (window.AudioContext || window.webkitAudioContext)();
+        return actx;
+      }
+      function playSound(pri) {
+        try {
+          const c = getAC();
+          const patterns = {
+            high: [
+              [523, 0],
+              [659, 0.12],
+              [784, 0.24],
+              [1047, 0.36],
+            ],
+            medium: [
+              [523, 0],
+              [659, 0.15],
+              [784, 0.3],
+            ],
+            low: [
+              [523, 0],
+              [659, 0.2],
+            ],
+          };
+          const notes = patterns[pri] || patterns.medium;
+          notes.forEach(([f, d]) => {
+            const o = c.createOscillator(),
+              g = c.createGain();
+            o.connect(g);
+            g.connect(c.destination);
+            o.type = pri === "high" ? "triangle" : "sine";
+            o.frequency.value = f;
+            const t = c.currentTime + d;
+            g.gain.setValueAtTime(0, t);
+            g.gain.linearRampToValueAtTime(
+              pri === "high" ? 0.25 : 0.15,
+              t + 0.04,
+            );
+            g.gain.exponentialRampToValueAtTime(0.001, t + 0.4);
+            o.start(t);
+            o.stop(t + 0.5);
+          });
+        } catch (e) {}
+      }
+
+      // HELPERS
+      const $ = (id) => document.getElementById(id);
+      const td = () => new Date().toISOString().split("T")[0];
+      const nw = () => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d.toISOString().split("T")[0];
+      };
+      const isOv = (t) =>
+        t.due_date && t.due_date < td() && t.status !== "completed";
+      const fmtD = (s) => {
+        if (!s) return "";
+        return new Date(s + "T00:00:00").toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        });
+      };
+      const timeAgo = (s) => {
+        if (!s) return "";
+        const d = Math.floor((Date.now() - new Date(s)) / 1000);
+        if (d < 60) return "Just now";
+        if (d < 3600) return Math.floor(d / 60) + "m ago";
+        if (d < 86400) return Math.floor(d / 3600) + "h ago";
+        return Math.floor(d / 86400) + "d ago";
+      };
+      const pTags = (t) => {
+        try {
+          return JSON.parse(t || "[]");
+        } catch {
+          return [];
+        }
+      };
+      const esc = (s) =>
+        String(s || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : "");
+      const setV = (id, v) => {
+        const e = $(id);
+        if (e) e.textContent = v;
+      };
+
+      function fillSel(id, items, ph = null) {
+        const el = $(id);
+        if (!el) return;
+        const cv = el.value;
+        el.innerHTML =
+          (ph ? `<option value="">${ph}</option>` : "") +
+          items
+            .map((i) => `<option value="${esc(i.v)}">${esc(i.l)}</option>`)
+            .join("");
+        if (cv) el.value = cv;
+      }
+
+      // TASK ROW
+      function tRow(t) {
+        const ov = isOv(t);
+        const tags = pTags(t.tags)
+          .map((tg) => `<span class="tag">#${esc(tg)}</span>`)
+          .join("");
+        const prC =
+          { high: "ph-", medium: "pm-", low: "pl-" }[t.priority] || "pm-";
+        const stC =
+          { pending: "sb-p", in_progress: "sb-i", completed: "sb-c" }[
+            t.status
+          ] || "sb-p";
+        const pin = t.is_pinned ? "pinned" : "";
+        return `<div class="tr ${t.status === "completed" ? "done" : ""} ${ov ? "ov-r" : ""} ${pin}">
+<div class="chk ${t.status === "completed" ? "done" : ""}" onclick="togSt(${t.id},event)">${t.status === "completed" ? '<i class="fas fa-check" style="font-size:9px"></i>' : ""}</div>
+<div class="ti" onclick="editT(${t.id})">
+<div class="tn">${t.is_pinned ? '<i class="fas fa-thumbtack pin-badge"></i>' : ""}${esc(t.title)}
+<span class="pri ${prC}">${t.priority}</span><span class="sb ${stC}">${t.status.replace("_", " ")}</span>
+${t.progress > 0 ? `<span style="font-size:10px;color:var(--txm)">${t.progress}%</span>` : ""}</div>
+${t.description ? `<div class="td">${esc(t.description)}</div>` : ""}
+<div class="tf">${t.due_date ? `<span class="${ov ? "ovt" : ""}"><i class="fas fa-calendar"></i>${fmtD(t.due_date)}${t.due_time ? " " + t.due_time : ""}${ov ? " ⚠️" : ""}</span>` : ""}
+<span><i class="fas fa-folder"></i>${esc(t.category)}</span>
+${t.assigned_to ? `<span><i class="fas fa-user"></i>${esc(t.assigned_to)}</span>` : ""}
+${t.project ? `<span><i class="fas fa-diagram-project"></i>${esc(t.project)}</span>` : ""}
+<span><i class="fas fa-bell"></i>${t.reminder_mins}m</span></div>
+${tags ? `<div style="margin-top:4px">${tags}</div>` : ""}</div>
+<div class="ta">
+<button class="ab" onclick="pinT(${t.id},event)" title="${t.is_pinned ? "Unpin" : "Pin"}"><i class="fas fa-thumbtack"></i></button>
+<button class="ab" onclick="editT(${t.id})" title="Edit"><i class="fas fa-pen"></i></button>
+<button class="ab del" onclick="delT(${t.id},event)" title="Delete"><i class="fas fa-trash"></i></button></div></div>`;
+      }
+
+      function emptyS(m = "No tasks", s = "Click New Task to start") {
+        return `<div class="empty"><i class="fas fa-clipboard-list"></i><h3>${m}</h3><p>${s}</p><button class="btn btn-p" onclick="openTM()"><i class="fas fa-plus"></i> New Task</button></div>`;
+      }
+      function setL(id, l) {
+        const e = $(id);
+        if (!e) return;
+        e.innerHTML = l && l.length ? l.map(tRow).join("") : emptyS();
+      }
+
+      // RENDERS
+      function render() {
+        updateSt();
+        updateRing();
+        updateBdg();
+        renderSBC();
+        switch (cur) {
+          case "dashboard":
+            rDash();
+            break;
+          case "all":
+            rAll();
+            break;
+          case "today":
+            rToday();
+            break;
+          case "upcoming":
+            rUp();
+            break;
+          case "overdue":
+            rOver();
+            break;
+          case "completed":
+            rComp();
+            break;
+          case "pinned":
+            rPin();
+            break;
+        }
+      }
+
+      function rDash() {
+        const s = $("d-st")?.value || "",
+          p = $("d-pr")?.value || "";
+        let l = [...allT];
+        if (s) l = l.filter((t) => t.status === s);
+        if (p) l = l.filter((t) => t.priority === p);
+        setL("dList", l.slice(0, 30));
+      }
+
+      function rAll() {
+        const s = $("a-st")?.value || "",
+          p = $("a-pr")?.value || "",
+          c = $("a-ca")?.value || "",
+          j = $("a-pj")?.value || "",
+          so = $("a-so")?.value || "created_at",
+          q = $("srch")?.value.toLowerCase() || "";
+        let l = [...allT];
+        if (s) l = l.filter((t) => t.status === s);
+        if (p) l = l.filter((t) => t.priority === p);
+        if (c) l = l.filter((t) => t.category === c);
+        if (j) l = l.filter((t) => t.project === j);
+        if (q)
+          l = l.filter((t) =>
+            (t.title + " " + (t.description || "") + " " + (t.notes || ""))
+              .toLowerCase()
+              .includes(q),
+          );
+        l.sort((a, b) => {
+          if (so === "priority") {
+            const o = { high: 0, medium: 1, low: 2 };
+            return (o[a.priority] || 1) - (o[b.priority] || 1);
+          }
+          return (a[so] || "").localeCompare(b[so] || "");
+        });
+        setL("aL", l);
+      }
+
+      function rToday() {
+        const t2 = td();
+        const l = allT.filter(
+          (t) => t.due_date === t2 && t.status !== "completed",
+        );
+        $("tL").innerHTML = l.length
+          ? l.map(tRow).join("")
+          : '<div class="empty"><i class="fas fa-sun"></i><h3>No tasks today</h3><p>Enjoy! 🎉</p></div>';
+      }
+
+      function rUp() {
+        setL(
+          "uL",
+          allT.filter(
+            (t) =>
+              t.due_date > td() &&
+              t.due_date <= nw() &&
+              t.status !== "completed",
+          ),
+        );
+      }
+      function rOver() {
+        const l = allT.filter((t) => isOv(t));
+        $("oL").innerHTML = l.length
+          ? l.map(tRow).join("")
+          : '<div class="empty"><i class="fas fa-trophy"></i><h3>All caught up!</h3><p>🎉</p></div>';
+      }
+      function rComp() {
+        setL(
+          "cL",
+          allT
+            .filter((t) => t.status === "completed")
+            .sort((a, b) =>
+              (b.completed_at || "").localeCompare(a.completed_at || ""),
+            ),
+        );
+      }
+      function rPin() {
+        setL(
+          "pnL",
+          allT.filter((t) => t.is_pinned && t.status !== "completed"),
+        );
+      }
+
+      function updateSt() {
+        setV("s-t", stats.total || 0);
+        setV("s-d", stats.completed || 0);
+        setV("s-p", stats.in_progress || 0);
+        setV("s-o", stats.overdue || 0);
+        setV("s-td", stats.due_today || 0);
+        setV("s-hp", stats.high_priority || 0);
+      }
+
+      function updateRing() {
+        const t = stats.total || 0,
+          c = stats.completed || 0;
+        const pct = t > 0 ? Math.round((c / t) * 100) : 0;
+        const off = 214 - (pct / 100) * 214;
+        setV("rPct", pct + "%");
+        setV("rD", c);
+        setV("rI", stats.in_progress || 0);
+        setV("rPn", stats.pending || 0);
+        setV("rO", stats.overdue || 0);
+        const ring = $("rC");
+        if (ring) ring.style.strokeDashoffset = off;
+      }
+
+      function renderSBC() {
+        const t2 = td();
+        setV("nc-all", allT.filter((t) => t.status !== "completed").length);
+        setV(
+          "nc-today",
+          allT.filter((t) => t.due_date === t2 && t.status !== "completed")
+            .length,
+        );
+        setV("nc-ov", allT.filter((t) => isOv(t)).length);
+        setV(
+          "nc-pin",
+          allT.filter((t) => t.is_pinned && t.status !== "completed").length,
+        );
+      }
+
+      function renderSB() {
+        const ce = $("sbC");
+        if (ce)
+          ce.innerHTML = cats
+            .map((c) => {
+              const cnt = allT.filter(
+                (t) => t.category === c.name && t.status !== "completed",
+              ).length;
+              return `<button class="nb" onclick="fCat('${esc(c.name)}')"><span style="width:9px;height:9px;border-radius:50%;background:${c.color};flex-shrink:0;display:inline-block"></span><span class="nt">${esc(c.name)}</span><span class="nc">${cnt}</span></button>`;
+            })
+            .join("");
+        const pe = $("sbP");
+        if (pe)
+          pe.innerHTML = projs
+            .map(
+              (p) =>
+                `<button class="nb" onclick="fProj('${esc(p.name)}')"><span style="width:9px;height:9px;border-radius:50%;background:${p.color};flex-shrink:0;display:inline-block"></span><span class="nt">${esc(p.name)}</span></button>`,
+            )
+            .join("");
+        const cp = $("cP");
+        if (cp)
+          cp.innerHTML = cats
+            .map((c) => {
+              const cnt = allT.filter(
+                (t) => t.category === c.name && t.status !== "completed",
+              ).length;
+              return `<div class="pr" onclick="fCat('${esc(c.name)}')"><span class="pdot" style="background:${c.color}"></span><span class="pn">${esc(c.name)}</span><span class="pc">${cnt}</span></div>`;
+            })
+            .join("");
+        fillSel(
+          "a-ca",
+          cats.map((c) => ({ v: c.name, l: c.name })),
+          "All Categories",
+        );
+        fillSel(
+          "a-pj",
+          projs.map((p) => ({ v: p.name, l: p.name })),
+          "All Projects",
+        );
+        fillSel(
+          "f-cat",
+          cats.map((c) => ({ v: c.name, l: c.name })),
+        );
+        fillSel(
+          "f-proj",
+          projs.map((p) => ({ v: p.name, l: p.name })),
+          "None",
+        );
+      }
+
+      function renderAct() {
+        api("/activity?limit=12").then((r) => {
+          const e = $("aList");
+          if (!e || !r) return;
+          if (!r.length) {
+            e.innerHTML =
+              '<div style="color:var(--txm);font-size:11px;text-align:center;padding:12px">No activity</div>';
+            return;
+          }
+          e.innerHTML = r
+            .map(
+              (r) =>
+                `<div class="ai"><div class="aic ${r.action}"><i class="fas ${r.action === "created" ? "fa-plus" : r.action === "deleted" ? "fa-trash" : "fa-pen"}"></i></div><div><div class="at"><b>${cap(r.action)}</b> — ${esc(r.task_title || "task")}</div><div class="atm">${timeAgo(r.timestamp)}</div></div></div>`,
+            )
+            .join("");
+        });
+      }
+
+      // NOTIFICATIONS
+      function updateBdg() {
+        const u = notifs.filter((n) => !n.is_read).length;
+        const b = $("nBdg");
+        b.textContent = u;
+        b.style.display = u ? "flex" : "none";
+      }
+      function renderNL() {
+        const e = $("nList");
+        if (!e) return;
+        if (!notifs.length) {
+          e.innerHTML =
+            '<div class="nde"><i class="fas fa-bell-slash"></i>No notifications</div>';
+          return;
+        }
+        e.innerHTML = notifs
+          .map((n) => {
+            const pc =
+              n.priority === "high"
+                ? "hp"
+                : n.priority === "medium"
+                  ? "mp"
+                  : "";
+            return `<div class="ndi ${n.is_read ? "" : "unread"} ${pc}" onclick="readN(${n.id})">
+<div class="ni ${n.type}"><i class="fas ${n.type === "overdue" || n.type === "upcoming_high" ? "fa-exclamation-circle" : n.type === "due_today" ? "fa-calendar-check" : "fa-bell"}"></i></div>
+<div class="nt2"><div class="nm">${esc(n.message)}</div><div class="ntm">${timeAgo(n.created_at)}</div></div></div>`;
+          })
+          .join("");
+      }
+      function toggleND() {
+        $("nDrop").classList.toggle("open");
+      }
+      async function readN(id) {
+        await api(`/notifications/${id}/read`, "PUT");
+        await fN();
+      }
+      async function markAll() {
+        await api("/notifications/read-all", "PUT");
+        await fN();
+        toast("All read", "ok");
+      }
+      async function clearR() {
+        await api("/notifications/clear-read", "DELETE");
+        await fN();
+        toast("Cleared", "ok");
+      }
+
+      // TASK CRUD
+      function openTM(t = null) {
+        [
+          "f-id",
+          "f-title",
+          "f-desc",
+          "f-date",
+          "f-time",
+          "f-asn",
+          "f-tags",
+          "f-notes",
+        ].forEach((id) => {
+          const e = $(id);
+          if (e) e.value = "";
+        });
+        $("f-pri").value = "medium";
+        $("f-status").value = "pending";
+        $("f-rem").value = settings.default_reminder_medium || 30;
+        $("f-prog").value = 0;
+        $("f-est").value = 0;
+        $("f-pin").checked = false;
+        $("mTi").textContent = "New Task";
+        fillSel(
+          "f-cat",
+          cats.map((c) => ({ v: c.name, l: c.name })),
+        );
+        fillSel(
+          "f-proj",
+          projs.map((p) => ({ v: p.name, l: p.name })),
+          "None",
+        );
+        if (t) {
+          $("mTi").textContent = "Edit Task";
+          $("f-id").value = t.id;
+          $("f-title").value = t.title || "";
+          $("f-desc").value = t.description || "";
+          $("f-cat").value = t.category || "General";
+          $("f-pri").value = t.priority || "medium";
+          $("f-date").value = t.due_date || "";
+          $("f-time").value = t.due_time || "";
+          $("f-status").value = t.status || "pending";
+          $("f-rem").value = t.reminder_mins || 30;
+          $("f-asn").value = t.assigned_to || "";
+          $("f-proj").value = t.project || "";
+          $("f-tags").value = pTags(t.tags).join(", ");
+          $("f-notes").value = t.notes || "";
+          $("f-prog").value = t.progress || 0;
+          $("f-est").value = t.estimated_hours || 0;
+          $("f-pin").checked = !!t.is_pinned;
+        }
+        $("tOv").classList.add("open");
+        setTimeout(() => $("f-title").focus(), 120);
+      }
+      function closeTM() {
+        $("tOv").classList.remove("open");
+      }
+      function editT(id) {
+        const t = allT.find((x) => x.id === id);
+        if (t) openTM(t);
+      }
+
+      // Auto-set reminder based on priority selection
+      document.getElementById("f-pri").addEventListener("change", function () {
+        const rems = {
+          high: settings.default_reminder_high || 15,
+          medium: settings.default_reminder_medium || 30,
+          low: settings.default_reminder_low || 60,
+        };
+        $("f-rem").value = rems[this.value] || 30;
+      });
+
+      async function saveT() {
+        const id = $("f-id").value,
+          title = $("f-title").value.trim();
+        if (!title) {
+          toast("Title required!", "er");
+          return;
+        }
+        const tags = $("f-tags").value
+          ? $("f-tags")
+              .value.split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
+        const payload = {
+          title,
+          description: $("f-desc").value,
+          category: $("f-cat").value,
+          priority: $("f-pri").value,
+          status: $("f-status").value,
+          due_date: $("f-date").value || null,
+          due_time: $("f-time").value || null,
+          reminder_mins: +$("f-rem").value,
+          assigned_to: $("f-asn").value,
+          project: $("f-proj").value,
+          tags,
+          notes: $("f-notes").value,
+          progress: +$("f-prog").value,
+          estimated_hours: +$("f-est").value,
+          is_pinned: $("f-pin").checked ? 1 : 0,
+        };
+        let r;
+        if (id) {
+          r = await api(`/tasks/${id}`, "PUT", payload);
+          if (r && !r.error) {
+            toast("Updated ✅", "ok");
+            showAP(
+              {
+                type: "created",
+                priority: payload.priority,
+                message: `Task "${title}" updated`,
+                created_at: new Date().toISOString(),
+              },
+              payload.priority,
+            );
+          }
+        } else {
+          r = await api("/tasks", "POST", payload);
+          if (r && !r.error) {
+            toast("Created 🎉", "ok");
+            showAP(
+              {
+                type: "created",
+                priority: payload.priority,
+                message: `New task "${title}" created`,
+                created_at: new Date().toISOString(),
+              },
+              payload.priority,
+            );
+          }
+        }
+        if (r && !r.error) {
+          closeTM();
+          await loadAll();
+        }
+      }
+
+      async function togSt(id, e) {
+        e.stopPropagation();
+        const t = allT.find((x) => x.id === id);
+        if (!t) return;
+        const ns = t.status === "completed" ? "pending" : "completed";
+        const r = await api(`/tasks/${id}`, "PUT", { status: ns });
+        if (r) {
+          toast(ns === "completed" ? "Completed! 🎉" : "Reopened", "ok");
+          if (ns === "completed") {
+            playSound("high");
+            sendBN("Task Completed ✅", `"${t.title}" done!`);
+            showAP(
+              {
+                type: "created",
+                priority: t.priority,
+                message: `"${t.title}" completed! 🎉`,
+                created_at: new Date().toISOString(),
+              },
+              t.priority,
+            );
+          }
+          await loadAll();
+        }
+      }
+
+      async function delT(id, e) {
+        e.stopPropagation();
+        const t = allT.find((x) => x.id === id);
+        if (!t || !confirm(`Delete "${t.title}"?`)) return;
+        await api(`/tasks/${id}`, "DELETE");
+        toast("Deleted", "ok");
+        await loadAll();
+      }
+
+      async function pinT(id, e) {
+        e.stopPropagation();
+        await api(`/tasks/${id}/pin`, "PUT");
+        await loadAll();
+      }
+
+      // CATEGORIES & PROJECTS
+      function openCatM() {
+        $("cOv").classList.add("open");
+      }
+      function closeCM() {
+        $("cOv").classList.remove("open");
+      }
+      async function saveCat() {
+        const n = $("cn").value.trim();
+        if (!n) {
+          toast("Name required", "er");
+          return;
+        }
+        const r = await api("/categories", "POST", {
+          name: n,
+          color: $("cc").value,
+        });
+        if (r && !r.error) {
+          toast(`"${n}" created`, "ok");
+          closeCM();
+          $("cn").value = "";
+          await loadAll();
+        } else toast(r?.error || "Error", "er");
+      }
+
+      function openProjM() {
+        $("pOv").classList.add("open");
+      }
+      function closePM() {
+        $("pOv").classList.remove("open");
+      }
+      async function saveProj() {
+        const n = $("pn").value.trim();
+        if (!n) {
+          toast("Name required", "er");
+          return;
+        }
+        const r = await api("/projects", "POST", {
+          name: n,
+          color: $("pc").value,
+          description: $("pd").value,
+        });
+        if (r && !r.error) {
+          toast(`"${n}" created`, "ok");
+          closePM();
+          $("pn").value = "";
+          $("pd").value = "";
+          await loadAll();
+        } else toast(r?.error || "Error", "er");
+      }
+
+      // SETTINGS MODAL
+      function openSettings() {
+        $("sOv").classList.add("open");
+      }
+      function closeSM() {
+        $("sOv").classList.remove("open");
+      }
+
+      // EXPORT/IMPORT
+      function openEI() {
+        $("eOv").classList.add("open");
+      }
+      function closeEI() {
+        $("eOv").classList.remove("open");
+      }
+      async function doExport() {
+        const d = await api("/export");
+        if (!d) return;
+        const b = new Blob([JSON.stringify(d, null, 2)], {
+          type: "application/json",
+        });
+        const u = URL.createObjectURL(b);
+        const a = document.createElement("a");
+        a.href = u;
+        a.download = `taskpro_${td()}.json`;
+        a.click();
+        URL.revokeObjectURL(u);
+        toast("Exported!", "ok");
+      }
+      async function doImport(ev) {
+        const f = ev.target.files[0];
+        if (!f) return;
+        const rd = new FileReader();
+        rd.onload = async (e) => {
+          try {
+            const d = JSON.parse(e.target.result);
+            const r = await api("/import", "POST", d);
+            if (r) {
+              toast(`Imported ${r.imported} tasks`, "ok");
+              closeEI();
+              await loadAll();
+            }
+          } catch {
+            toast("Invalid file", "er");
+          }
+        };
+        rd.readAsText(f);
+        ev.target.value = "";
+      }
+
+      // PAGE NAV
+      function go(id, btn) {
+        cur = id;
+        document
+          .querySelectorAll(".page")
+          .forEach((p) => p.classList.remove("active"));
+        document
+          .querySelectorAll(".nb")
+          .forEach((b) => b.classList.remove("active"));
+        const pg = $("page-" + id);
+        if (pg) pg.classList.add("active");
+        if (btn) btn.classList.add("active");
+        render();
+        if (window.innerWidth <= 768) $("sidebar").classList.remove("mob");
+      }
+
+      function fCat(n) {
+        go("all", document.querySelector('[data-page="all"]'));
+        setTimeout(() => {
+          const s = $("a-ca");
+          if (s) {
+            s.value = n;
+            rAll();
+          }
+        }, 50);
+      }
+      function fProj(n) {
+        go("all", document.querySelector('[data-page="all"]'));
+        setTimeout(() => {
+          const s = $("a-pj");
+          if (s) {
+            s.value = n;
+            rAll();
+          }
+        }, 50);
+      }
+
+      // SEARCH
+      let sT;
+      function onSrch() {
+        clearTimeout(sT);
+        sT = setTimeout(() => {
+          if (cur !== "all")
+            go("all", document.querySelector('[data-page="all"]'));
+          else rAll();
+        }, 300);
+      }
+
+      // SIDEBAR & THEME
+      function toggleSB() {
+        const sb = $("sidebar");
+        if (window.innerWidth <= 768) sb.classList.toggle("mob");
+        else sb.classList.toggle("slim");
+      }
+      function toggleTheme() {
+        document.body.classList.toggle("dark");
+        const dk = document.body.classList.contains("dark");
+        $("thI").className = dk ? "fas fa-sun" : "fas fa-moon";
+        localStorage.setItem("tp-t", dk ? "dark" : "light");
+        api("/settings", "PUT", { theme: dk ? "dark" : "light" });
+      }
+      function loadTheme() {
+        if (localStorage.getItem("tp-t") === "dark") {
+          document.body.classList.add("dark");
+          $("thI").className = "fas fa-sun";
+        }
+      }
+      function setGreet() {
+        const h = new Date().getHours();
+        setV(
+          "greet",
+          h < 12
+            ? "Good Morning 👋"
+            : h < 17
+              ? "Good Afternoon ☀️"
+              : "Good Evening 🌙",
+        );
+        setV(
+          "tDate",
+          new Date().toLocaleDateString("en-US", {
+            weekday: "long",
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          }),
+        );
+      }
+
+      function toast(m, tp = "ok") {
+        const w = $("tw");
+        const e = document.createElement("div");
+        e.className = "toast " + tp;
+        const ic =
+          {
+            ok: "fa-check-circle",
+            er: "fa-times-circle",
+            wa: "fa-exclamation-triangle",
+          }[tp] || "fa-info-circle";
+        e.innerHTML = `<i class="fas ${ic} tii"></i><span class="tmsg">${m}</span><button class="tcl" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>`;
+        w.appendChild(e);
+        setTimeout(() => {
+          e.style.opacity = "0";
+          e.style.transform = "translateX(50px)";
+          e.style.transition = "all .3s";
+          setTimeout(() => e.remove(), 300);
+        }, 4000);
+      }
+
+      // KEYS
+      document.addEventListener("keydown", (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+          e.preventDefault();
+          $("srch").focus();
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+          e.preventDefault();
+          openTM();
+        }
+        if (e.key === "Escape") {
+          document
+            .querySelectorAll(".ov.open,.ndrop.open")
+            .forEach((el) => el.classList.remove("open"));
+        }
+      });
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest("#bellBtn") && !e.target.closest("#nDrop"))
+          $("nDrop").classList.remove("open");
+      });
+      // CSS animation for progress bar
+      const style = document.createElement("style");
+      style.textContent = "@keyframes shrink{from{width:100%}to{width:0%}}";
+      document.head.appendChild(style);
+    </script>
+  </body>
+</html>
