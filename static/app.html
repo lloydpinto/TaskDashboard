@@ -984,122 +984,243 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
-// ====================================================
-// STATE
-// ====================================================
+// Paste this ENTIRE block inside <script> tags at bottom of app.html
+
 var API = '/api';
+var authToken = localStorage.getItem('taskpro-token') || '';
+var currentUser = null;
 var tasks = [], cats = [], stats = {}, notifs = [], cfg = {};
-var page = 'dashboard';
+var activePage = 'dashboard';
 var seenNotifs = {}, alertQ = [], alertBusy = false;
 var alertTimer = null, pollTimer = null, alertTaskId = null;
 var audioCtx = null, searchTimer = null;
-var userProfile = { name: 'John Doe', email: 'john@company.com', role: 'Manager', initials: 'JD' };
 
-// ====================================================
-// INIT
-// ====================================================
 document.addEventListener('DOMContentLoaded', function() {
-  loadProfile();
   applyTheme();
   setGreeting();
-  loadAll();
+  initAuth();
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
   setInterval(clientReminderCheck, 60000);
 });
 
+function initAuth() {
+  try {
+    var stored = localStorage.getItem('taskpro-user');
+    if (stored) currentUser = JSON.parse(stored);
+  } catch(e) {}
+  if (authToken && currentUser) {
+    applyUserToUI();
+    hideLoginShowApp();
+    loadAll();
+  } else {
+    showLoginScreen();
+  }
+}
+
+function authFetch(path, method, body) {
+  method = method || 'GET';
+  var opts = {
+    method: method,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  return fetch(API + path, opts).then(function(r) {
+    if (r.status === 401) { logout(); return null; }
+    if (!r.ok) return null;
+    return r.json();
+  }).catch(function(e) { console.error(e); return null; });
+}
+
+function http(path, method, body, cb) {
+  authFetch(path, method, body).then(function(data) { if (cb) cb(data); });
+}
+
 function loadAll() {
+  if (!authToken) { showLoginScreen(); return; }
   Promise.all([
-    fetch(API + '/tasks?sort=created_at&order=desc').then(function(r){ return r.json(); }),
-    fetch(API + '/categories').then(function(r){ return r.json(); }),
-    fetch(API + '/statistics').then(function(r){ return r.json(); }),
-    fetch(API + '/notifications').then(function(r){ return r.json(); }),
-    fetch(API + '/settings').then(function(r){ return r.json(); })
+    authFetch('/tasks?sort=created_at&order=desc'),
+    authFetch('/categories'),
+    authFetch('/statistics'),
+    authFetch('/notifications'),
+    authFetch('/settings')
   ]).then(function(results) {
-    tasks  = results[0] || [];
-    cats   = results[1] || [];
-    stats  = results[2] || {};
+    if (!results[0] && !results[1]) { showLoginScreen(); return; }
+    tasks = results[0] || [];
+    cats = results[1] || [];
+    stats = results[2] || {};
     notifs = results[3] || [];
-    cfg    = results[4] || {};
+    cfg = results[4] || {};
     applySettingsToUI();
     renderAll2();
     startPolling();
   }).catch(function(e) {
-    console.error('Init error:', e);
-    showToast('Connection error', 'er');
+    console.error('Load error:', e);
+    showLoginScreen();
   });
 }
 
-function refreshAll() {
-  loadAll();
-  showToast('Refreshed!', 'ok');
+function refreshAll() { loadAll(); showToast('Refreshed!', 'ok'); }
+
+// AUTH FUNCTIONS
+function doLogin() {
+  var email = G('login-email').value.trim();
+  var pass = G('login-password').value;
+  if (!email || !pass) { showToast('Please fill all fields', 'er'); return; }
+  fetch(API + '/auth/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: email, password: pass })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { showToast(data.error, 'er'); return; }
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('taskpro-token', authToken);
+    localStorage.setItem('taskpro-user', JSON.stringify(currentUser));
+    applyUserToUI();
+    hideLoginShowApp();
+    loadAll();
+    showToast('Welcome back, ' + currentUser.name + '! 👋', 'ok');
+  }).catch(function() { showToast('Connection error', 'er'); });
 }
 
-// ====================================================
-// HTTP
-// ====================================================
-function http(path, method, body, cb) {
-  method = method || 'GET';
-  var opts = { method: method, headers: { 'Content-Type': 'application/json' } };
-  if (body) opts.body = JSON.stringify(body);
-  fetch(API + path, opts)
-    .then(function(r) {
-      if (!r.ok) {
-        r.text().then(function(t) { console.error('HTTP ' + r.status, t); showToast('Error ' + r.status, 'er'); });
-        return;
-      }
-      r.json().then(function(d) { if (cb) cb(d); });
-    })
-    .catch(function(e) { console.error(e); showToast('Connection error', 'er'); });
+function doSignup() {
+  var name = G('signup-name').value.trim();
+  var email = G('signup-email').value.trim();
+  var pass = G('signup-password').value;
+  var role = G('signup-role').value.trim() || 'Member';
+  if (!name || !email || !pass) { showToast('Please fill all fields', 'er'); return; }
+  if (pass.length < 4) { showToast('Password must be 4+ characters', 'er'); return; }
+  fetch(API + '/auth/signup', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, password: pass, role: role })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { showToast(data.error, 'er'); return; }
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('taskpro-token', authToken);
+    localStorage.setItem('taskpro-user', JSON.stringify(currentUser));
+    applyUserToUI();
+    hideLoginShowApp();
+    loadAll();
+    showToast('Welcome, ' + currentUser.name + '! 🎉', 'ok');
+  }).catch(function() { showToast('Connection error', 'er'); });
 }
 
-// ====================================================
+function doGuestLogin() {
+  fetch(API + '/auth/guest', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { showToast(data.error, 'er'); return; }
+    authToken = data.token;
+    currentUser = data.user;
+    localStorage.setItem('taskpro-token', authToken);
+    localStorage.setItem('taskpro-user', JSON.stringify(currentUser));
+    applyUserToUI();
+    hideLoginShowApp();
+    loadAll();
+    showToast('Welcome, Guest! 👤', 'ok');
+  }).catch(function() { showToast('Connection error', 'er'); });
+}
+
+function logout() {
+  authToken = '';
+  currentUser = null;
+  localStorage.removeItem('taskpro-token');
+  localStorage.removeItem('taskpro-user');
+  tasks = []; cats = []; stats = {}; notifs = []; cfg = {};
+  if (pollTimer) clearInterval(pollTimer);
+  showLoginScreen();
+  showToast('Logged out', 'ok');
+}
+
+function showLoginScreen() {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  var sidebar = G('sidebar');
+  if (sidebar) sidebar.style.display = 'none';
+  var mainTopbar = document.querySelector('.topbar');
+  if (mainTopbar) mainTopbar.style.display = 'none';
+  G('login-modal').classList.add('open');
+}
+
+function hideLoginShowApp() {
+  G('login-modal').classList.remove('open');
+  var sidebar = G('sidebar');
+  if (sidebar) sidebar.style.display = '';
+  var mainTopbar = document.querySelector('.topbar');
+  if (mainTopbar) mainTopbar.style.display = '';
+  navigateTo('dashboard', document.querySelector('[data-page="dashboard"]'));
+}
+
+function applyUserToUI() {
+  if (!currentUser) return;
+  var ini = makeInitials(currentUser.name);
+  setTxt('sb-avatar-initials', ini);
+  setTxt('sb-user-name', currentUser.name);
+  setTxt('sb-user-role', currentUser.role || 'Member');
+  setTxt('tb-avatar-initials', ini);
+  setTxt('tb-profile-name', currentUser.name);
+  setTxt('tb-profile-role', currentUser.role || 'Member');
+  if (G('profile-big-initials')) setTxt('profile-big-initials', ini);
+  if (G('profile-display-name')) setTxt('profile-display-name', currentUser.name);
+  if (G('profile-display-email')) setTxt('profile-display-email', currentUser.email);
+}
+
+function makeInitials(name) {
+  var parts = (name || '').split(' ').filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+  return parts[0] ? parts[0].substring(0, 2).toUpperCase() : 'U';
+}
+
+function saveProfile() {
+  var name = G('profile-name-input').value.trim();
+  var email = G('profile-email-input').value.trim();
+  var role = G('profile-role-input').value.trim();
+  http('/auth/profile', 'PUT', { name: name, email: email, role: role }, function(data) {
+    if (data && data.user) {
+      currentUser = data.user;
+      localStorage.setItem('taskpro-user', JSON.stringify(currentUser));
+      applyUserToUI();
+      showToast('Profile saved ✅', 'ok');
+      closeProfileModal();
+    } else {
+      showToast('Failed to save', 'er');
+    }
+  });
+}
+
 // SETTINGS
-// ====================================================
 function applySettingsToUI() {
-  function ck(id, v) { var e = G(id); if(e) e.checked = v !== 0; }
-  function sv(id, v) { var e = G(id); if(e) e.value  = v; }
-  ck('set-sound',    cfg.sound_enabled);
-  ck('set-popup',    cfg.popup_enabled);
-  ck('set-browser',  cfg.browser_notif_enabled);
-  sv('set-interval', cfg.check_interval_secs     || 30);
-  sv('set-rem-h',    cfg.default_reminder_high   || 15);
-  sv('set-rem-m',    cfg.default_reminder_medium || 30);
-  sv('set-rem-l',    cfg.default_reminder_low    || 60);
-  sv('set-dur-h',    cfg.popup_duration_high     || 12);
-  sv('set-dur-m',    cfg.popup_duration_medium   || 8);
-  sv('set-dur-l',    cfg.popup_duration_low      || 5);
-  sv('set-snooze',   cfg.auto_snooze_mins        || 10);
+  function ck(id, v) { var e = G(id); if (e) e.checked = v !== 0; }
+  function sv(id, v) { var e = G(id); if (e) e.value = v; }
+  ck('set-sound', cfg.sound_enabled);
+  ck('set-popup', cfg.popup_enabled);
+  ck('set-browser', cfg.browser_notif_enabled);
+  sv('set-interval', cfg.check_interval_secs || 30);
+  sv('set-rem-h', cfg.default_reminder_high || 15);
+  sv('set-rem-m', cfg.default_reminder_medium || 30);
+  sv('set-rem-l', cfg.default_reminder_low || 60);
+  sv('set-dur-h', cfg.popup_duration_high || 12);
+  sv('set-dur-m', cfg.popup_duration_medium || 8);
+  sv('set-dur-l', cfg.popup_duration_low || 5);
+  sv('set-snooze', cfg.auto_snooze_mins || 10);
 }
 
 function saveSettings() {
-  function gc(id) { var e=G(id); return e&&e.checked?1:0; }
-  function gi(id) { var e=G(id); return e?parseInt(e.value):0; }
+  function gc(id) { var e = G(id); return e && e.checked ? 1 : 0; }
+  function gi(id) { var e = G(id); return e ? parseInt(e.value) : 0; }
   var payload = {
-    sound_enabled:           gc('set-sound'),
-    popup_enabled:           gc('set-popup'),
-    browser_notif_enabled:   gc('set-browser'),
-    check_interval_secs:     gi('set-interval'),
-    default_reminder_high:   gi('set-rem-h'),
-    default_reminder_medium: gi('set-rem-m'),
-    default_reminder_low:    gi('set-rem-l'),
-    popup_duration_high:     gi('set-dur-h'),
-    popup_duration_medium:   gi('set-dur-m'),
-    popup_duration_low:      gi('set-dur-l'),
-    auto_snooze_mins:        gi('set-snooze')
+    sound_enabled: gc('set-sound'), popup_enabled: gc('set-popup'),
+    browser_notif_enabled: gc('set-browser'), check_interval_secs: gi('set-interval'),
+    default_reminder_high: gi('set-rem-h'), default_reminder_medium: gi('set-rem-m'),
+    default_reminder_low: gi('set-rem-l'), popup_duration_high: gi('set-dur-h'),
+    popup_duration_medium: gi('set-dur-m'), popup_duration_low: gi('set-dur-l'),
+    auto_snooze_mins: gi('set-snooze')
   };
-  http('/settings', 'PUT', payload, function(d) {
-    cfg = d || cfg;
-    startPolling();
-    showToast('Settings saved ✅', 'ok');
-  });
+  http('/settings', 'PUT', payload, function(d) { cfg = d || cfg; startPolling(); showToast('Settings saved ✅', 'ok'); });
 }
 
-// ====================================================
-// POLLING — only fires for REMINDER / OVERDUE / DUE_TODAY
-// New task creation does NOT show a second popup from polling
-// ====================================================
+// POLLING
 function startPolling() {
   if (pollTimer) clearInterval(pollTimer);
   var ms = (cfg.check_interval_secs || 30) * 1000;
@@ -1107,30 +1228,24 @@ function startPolling() {
 }
 
 function pollNotifs() {
-  fetch(API + '/notifications/new')
-    .then(function(r) { return r.json(); })
-    .then(function(data) {
-      if (!data) return;
-      // Only show popups for reminders/overdue — NOT for type 'created'
-      var fresh = data.filter(function(n) {
-        return !seenNotifs['n' + n.id] && n.type !== 'created';
+  if (!authToken) return;
+  authFetch('/notifications/new').then(function(data) {
+    if (!data) return;
+    var fresh = data.filter(function(n) { return !seenNotifs['n' + n.id]; });
+    fresh.forEach(function(n) { seenNotifs['n' + n.id] = true; alertQ.push(n); });
+    if (fresh.length > 0) {
+      authFetch('/notifications').then(function(d) {
+        notifs = d || [];
+        updateNotifBadge();
+        renderNotifList();
       });
-      fresh.forEach(function(n) {
-        seenNotifs['n' + n.id] = true;
-        alertQ.push(n);
-      });
-      if (fresh.length > 0) {
-        fetch(API + '/notifications').then(function(r){ return r.json(); }).then(function(d) {
-          notifs = d || [];
-          updateNotifBadge();
-          renderNotifList();
-        });
-        processAlertQueue();
-      }
-    });
+      processAlertQueue();
+    }
+  });
 }
 
 function clientReminderCheck() {
+  if (!authToken || !tasks.length) return;
   var now = new Date();
   tasks.forEach(function(t) {
     if (t.status === 'completed' || !t.due_date || !t.due_time) return;
@@ -1138,25 +1253,25 @@ function clientReminderCheck() {
     if (seenNotifs[key]) return;
     try {
       var due = new Date(t.due_date + 'T' + t.due_time + ':00');
-      var rm  = t.reminder_mins || 30;
+      var rm = t.reminder_mins || 30;
       var remAt = new Date(due.getTime() - rm * 60000);
       if (now >= remAt && now < due) {
         seenNotifs[key] = true;
-        var ml  = Math.max(0, Math.round((due - now) / 60000));
+        var ml = Math.max(0, Math.round((due - now) / 60000));
         var pri = t.priority || 'medium';
-        var em  = pri === 'high' ? '🔴' : pri === 'medium' ? '🟡' : '🟢';
-        alertQ.push({ task_id: t.id, priority: pri, type: 'reminder',
+        var em = pri === 'high' ? '🔴' : pri === 'medium' ? '🟡' : '🟢';
+        alertQ.push({
+          task_id: t.id, priority: pri, type: 'reminder',
           message: em + ' REMINDER: "' + t.title + '" due in ' + ml + ' min!',
-          created_at: now.toISOString(), task_title: t.title });
+          created_at: now.toISOString(), task_title: t.title
+        });
         processAlertQueue();
       }
     } catch(e) {}
   });
 }
 
-// ====================================================
 // ALERT POPUP
-// ====================================================
 function processAlertQueue() {
   if (alertBusy || alertQ.length === 0) return;
   var n = alertQ.shift();
@@ -1165,59 +1280,40 @@ function processAlertQueue() {
 }
 
 function showAlert(n, pri) {
-  alertBusy = true;
-  clearTimeout(alertTimer);
-  alertTaskId = n.task_id || null;
-
+  alertBusy = true; clearTimeout(alertTimer); alertTaskId = n.task_id || null;
   var typeMap = {
-    overdue:       { title: '⚠️ OVERDUE',        icon: 'fa-exclamation-circle' },
-    due_today:     { title: '📅 Due Today',       icon: 'fa-calendar-check'    },
-    reminder:      { title: '⏰ Reminder',        icon: 'fa-bell'              },
-    upcoming_high: { title: '🔴 Tomorrow',        icon: 'fa-fire'              },
-    created:       { title: '✅ Task Created',    icon: 'fa-check-circle'      }
+    overdue: { title: '⚠️ OVERDUE', icon: 'fa-exclamation-circle' },
+    due_today: { title: '📅 Due Today', icon: 'fa-calendar-check' },
+    reminder: { title: '⏰ Reminder', icon: 'fa-bell' },
+    upcoming_high: { title: '🔴 Tomorrow', icon: 'fa-fire' },
+    created: { title: '✅ Task Saved', icon: 'fa-check-circle' }
   };
   var conf = typeMap[n.type] || { title: '🔔 Alert', icon: 'fa-bell' };
-  var colorClass = (n.type === 'created') ? 'type-created' : 'pri-' + pri;
-
-  G('alert-bar-top').className    = 'alert-top-bar ' + colorClass;
-  G('alert-icon-box').className   = 'alert-icon '    + colorClass;
-  G('alert-icon-i').className     = 'fas ' + conf.icon;
-  G('alert-title').textContent    = conf.title;
-  G('alert-msg').textContent      = n.message || 'Update';
-  G('alert-priority-lbl').className = 'alert-priority-label ' + colorClass;
+  var colorCls = (n.type === 'created') ? 'type-created' : 'pri-' + pri;
+  G('alert-bar-top').className = 'alert-top-bar ' + colorCls;
+  G('alert-icon-box').className = 'alert-icon ' + colorCls;
+  G('alert-icon-i').className = 'fas ' + conf.icon;
+  G('alert-title').textContent = conf.title;
+  G('alert-msg').textContent = n.message || 'Update';
+  G('alert-priority-lbl').className = 'alert-priority-label ' + colorCls;
   G('alert-priority-lbl').textContent = pri.toUpperCase() + ' PRIORITY';
-  G('alert-time').textContent     = timeAgo(n.created_at);
-
-  var durs = { high: cfg.popup_duration_high||12, medium: cfg.popup_duration_medium||8, low: cfg.popup_duration_low||5 };
+  G('alert-time').textContent = timeAgo(n.created_at);
+  var durs = { high: cfg.popup_duration_high || 12, medium: cfg.popup_duration_medium || 8, low: cfg.popup_duration_low || 5 };
   var dur = durs[pri] || 8;
-
   var bar = G('alert-bar-fill');
-  bar.style.transition = 'none';
-  bar.style.transform  = 'scaleX(1)';
-  bar.offsetHeight;
+  bar.style.transition = 'none'; bar.style.transform = 'scaleX(1)'; bar.offsetHeight;
   bar.style.transition = dur > 0 ? 'transform ' + dur + 's linear' : 'none';
-  bar.style.transform  = dur > 0 ? 'scaleX(0)' : 'scaleX(1)';
-
+  bar.style.transform = dur > 0 ? 'scaleX(0)' : 'scaleX(1)';
   G('alert-popup').classList.add('show');
-
   if (cfg.sound_enabled !== 0) playNotifSound(pri);
-
   if (cfg.browser_notif_enabled !== 0 && 'Notification' in window && Notification.permission === 'granted') {
-    try {
-      var bn = new Notification('TaskPro: ' + conf.title, { body: n.message || '' });
-      bn.onclick = function() { window.focus(); bn.close(); };
-    } catch(e) {}
+    try { var bn = new Notification('TaskPro: ' + conf.title, { body: n.message || '' }); bn.onclick = function() { window.focus(); bn.close(); }; } catch(e) {}
   }
-
-  if (dur > 0) {
-    alertTimer = setTimeout(function() { closeAlert(); setTimeout(processAlertQueue, 500); }, dur * 1000);
-  }
+  if (dur > 0) { alertTimer = setTimeout(function() { closeAlert(); setTimeout(processAlertQueue, 500); }, dur * 1000); }
 }
 
 function closeAlert() {
-  G('alert-popup').classList.remove('show');
-  clearTimeout(alertTimer);
-  alertTaskId = null;
+  G('alert-popup').classList.remove('show'); clearTimeout(alertTimer); alertTaskId = null;
   setTimeout(function() { alertBusy = false; processAlertQueue(); }, 450);
 }
 
@@ -1230,134 +1326,87 @@ function doSnooze() {
   closeAlert();
 }
 
-// ====================================================
-// NOTIFICATION SOUND — pleasant chime (not harsh beep)
-// ====================================================
+// NOTIFICATION SOUND
 function playNotifSound(priority) {
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var ctx = audioCtx;
-    var t0  = ctx.currentTime;
-
+    var ctx = audioCtx, t0 = ctx.currentTime;
+    var notes;
     if (priority === 'high') {
-      // Urgent but pleasant — ascending 3-note chime, repeated
-      var freqs = [523.25, 659.25, 783.99, 1046.50];
-      freqs.forEach(function(f, i) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = f;
-        var t = t0 + i * 0.14;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.22, t + 0.05);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
-        o.start(t); o.stop(t + 0.6);
-      });
-      // Second pass slightly delayed
-      freqs.forEach(function(f, i) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = f;
-        var t = t0 + 0.8 + i * 0.14;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.16, t + 0.05);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
-        o.start(t); o.stop(t + 0.55);
-      });
+      notes = [[523.25,0],[659.25,.14],[783.99,.28],[1046.50,.42],[523.25,.7],[659.25,.84],[783.99,.98],[1046.50,1.12]];
     } else if (priority === 'medium') {
-      // Gentle 3-note ding
-      [523.25, 659.25, 783.99].forEach(function(f, i) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = f;
-        var t = t0 + i * 0.18;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.18, t + 0.06);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.65);
-        o.start(t); o.stop(t + 0.7);
-      });
+      notes = [[523.25,0],[659.25,.18],[783.99,.36]];
     } else {
-      // Soft single ding
-      [523.25, 659.25].forEach(function(f, i) {
-        var o = ctx.createOscillator(), g = ctx.createGain();
-        o.connect(g); g.connect(ctx.destination);
-        o.type = 'sine'; o.frequency.value = f;
-        var t = t0 + i * 0.25;
-        g.gain.setValueAtTime(0, t);
-        g.gain.linearRampToValueAtTime(0.12, t + 0.08);
-        g.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
-        o.start(t); o.stop(t + 0.75);
-      });
+      notes = [[523.25,0],[659.25,.25]];
     }
-  } catch(e) { console.warn('Audio:', e); }
+    notes.forEach(function(n) {
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'sine'; o.frequency.value = n[0];
+      var t = t0 + n[1];
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(priority === 'high' ? 0.2 : 0.14, t + 0.05);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      o.start(t); o.stop(t + 0.55);
+    });
+  } catch(e) {}
 }
 
-// ====================================================
-// RENDER ALL
-// ====================================================
+// RENDER
 function renderAll2() {
-  updateStats();
-  updateRing();
-  updateNotifBadge();
-  updateSidebarCounts();
-  renderSidebarCats();
-  renderCatPanel();
-  renderCatDropdowns();
-  renderNotifList();
+  updateStats(); updateRing(); updateNotifBadge(); updateSidebarCounts();
+  renderSidebarCats(); renderCatPanel(); renderCatDropdowns(); renderNotifList();
   renderActivePage();
 }
 
 function renderActivePage() {
-  switch(page) {
-    case 'dashboard': renderDash();      break;
-    case 'all-tasks': renderAll();       break;
-    case 'due-today': renderToday();     break;
-    case 'overdue':   renderOverdue();   break;
+  switch(activePage) {
+    case 'dashboard': renderDash(); break;
+    case 'all-tasks': renderAll(); break;
+    case 'due-today': renderToday(); break;
+    case 'overdue': renderOverdue(); break;
     case 'completed': renderCompleted(); break;
   }
 }
 
 function renderDash() {
-  var s  = G('ds-status')   ? G('ds-status').value   : '';
-  var p  = G('ds-priority') ? G('ds-priority').value : '';
+  var s = G('ds-status') ? G('ds-status').value : '';
+  var p = G('ds-priority') ? G('ds-priority').value : '';
   var ls = tasks.slice();
-  if (s) ls = ls.filter(function(t){ return t.status === s; });
-  if (p) ls = ls.filter(function(t){ return t.priority === p; });
+  if (s) ls = ls.filter(function(t) { return t.status === s; });
+  if (p) ls = ls.filter(function(t) { return t.priority === p; });
   fillList('dash-task-list', ls.slice(0, 25));
 }
 
 function renderAll() {
-  var s  = G('al-status')   ? G('al-status').value   : '';
-  var p  = G('al-priority') ? G('al-priority').value : '';
-  var c  = G('al-category') ? G('al-category').value : '';
-  var q  = G('search-input') ? G('search-input').value.toLowerCase() : '';
+  var s = G('al-status') ? G('al-status').value : '';
+  var p = G('al-priority') ? G('al-priority').value : '';
+  var c = G('al-category') ? G('al-category').value : '';
+  var q = G('search-input') ? G('search-input').value.toLowerCase() : '';
   var ls = tasks.slice();
-  if (s) ls = ls.filter(function(t){ return t.status   === s; });
-  if (p) ls = ls.filter(function(t){ return t.priority === p; });
-  if (c) ls = ls.filter(function(t){ return t.category === c; });
-  if (q) ls = ls.filter(function(t){ return (t.title + ' ' + (t.description||'')).toLowerCase().indexOf(q) !== -1; });
+  if (s) ls = ls.filter(function(t) { return t.status === s; });
+  if (p) ls = ls.filter(function(t) { return t.priority === p; });
+  if (c) ls = ls.filter(function(t) { return t.category === c; });
+  if (q) ls = ls.filter(function(t) { return (t.title + ' ' + (t.description || '')).toLowerCase().indexOf(q) !== -1; });
   fillList('all-task-list', ls);
 }
 
 function renderToday() {
   var td = todayStr();
-  var ls = tasks.filter(function(t){ return t.due_date === td && t.status !== 'completed'; });
-  var el = G('today-task-list');
-  if (!el) return;
-  el.innerHTML = ls.length ? ls.map(buildTaskRow).join('') :
-    buildEmpty('Nothing due today! 🎉', 'Enjoy your day', true);
+  var ls = tasks.filter(function(t) { return t.due_date === td && t.status !== 'completed'; });
+  var el = G('today-task-list'); if (!el) return;
+  el.innerHTML = ls.length ? ls.map(buildTaskRow).join('') : buildEmpty('Nothing due today! 🎉', 'Enjoy your day', true);
 }
 
 function renderOverdue() {
-  var ls = tasks.filter(function(t){ return isOverdue(t); });
-  var el = G('overdue-task-list');
-  if (!el) return;
-  el.innerHTML = ls.length ? ls.map(buildTaskRow).join('') :
-    buildEmpty('All caught up! 🎉', 'No overdue tasks', true);
+  var ls = tasks.filter(function(t) { return isOverdue(t); });
+  var el = G('overdue-task-list'); if (!el) return;
+  el.innerHTML = ls.length ? ls.map(buildTaskRow).join('') : buildEmpty('All caught up! 🎉', 'No overdue tasks', true);
 }
 
 function renderCompleted() {
-  var ls = tasks.filter(function(t){ return t.status === 'completed'; });
-  ls.sort(function(a,b){ return (b.completed_at||'').localeCompare(a.completed_at||''); });
+  var ls = tasks.filter(function(t) { return t.status === 'completed'; });
+  ls.sort(function(a, b) { return (b.completed_at || '').localeCompare(a.completed_at || ''); });
   fillList('completed-task-list', ls);
 }
 
@@ -1366,56 +1415,48 @@ function fillList(id, ls) {
   el.innerHTML = ls && ls.length ? ls.map(buildTaskRow).join('') : buildEmpty();
 }
 
-// ====================================================
-// STATS / RING
-// ====================================================
+// STATS
 function updateStats() {
-  setTxt('s-total', stats.total       || 0);
-  setTxt('s-done',  stats.completed   || 0);
-  setTxt('s-prog',  stats.in_progress || 0);
-  setTxt('s-over',  stats.overdue     || 0);
-  setTxt('s-today', stats.due_today   || 0);
-  // Profile stats
-  setTxt('prof-total',   stats.total   || 0);
-  setTxt('prof-done',    stats.completed || 0);
-  setTxt('prof-overdue', stats.overdue  || 0);
+  setTxt('s-total', stats.total || 0); setTxt('s-done', stats.completed || 0);
+  setTxt('s-prog', stats.in_progress || 0); setTxt('s-over', stats.overdue || 0);
+  setTxt('s-today', stats.due_today || 0);
+  if (G('prof-total')) setTxt('prof-total', stats.total || 0);
+  if (G('prof-done')) setTxt('prof-done', stats.completed || 0);
+  if (G('prof-overdue')) setTxt('prof-overdue', stats.overdue || 0);
 }
 
 function updateRing() {
   var t = stats.total || 0, d = stats.completed || 0;
-  var pct = t > 0 ? Math.round(d/t*100) : 0;
+  var pct = t > 0 ? Math.round(d / t * 100) : 0;
   setTxt('ring-pct', pct + '%');
-  setTxt('r-done', d); setTxt('r-prog', stats.in_progress||0);
-  setTxt('r-pend', stats.pending||0); setTxt('r-over', stats.overdue||0);
+  setTxt('r-done', d); setTxt('r-prog', stats.in_progress || 0);
+  setTxt('r-pend', stats.pending || 0); setTxt('r-over', stats.overdue || 0);
   var rc = G('ring-circle');
-  if (rc) rc.style.strokeDashoffset = 232 - (pct/100)*232;
+  if (rc) rc.style.strokeDashoffset = 232 - (pct / 100) * 232;
 }
 
 function updateSidebarCounts() {
   var td = todayStr();
-  setTxt('cnt-all',     tasks.filter(function(t){ return t.status !== 'completed'; }).length);
-  setTxt('cnt-today',   tasks.filter(function(t){ return t.due_date === td && t.status !== 'completed'; }).length);
-  setTxt('cnt-overdue', tasks.filter(function(t){ return isOverdue(t); }).length);
+  setTxt('cnt-all', tasks.filter(function(t) { return t.status !== 'completed'; }).length);
+  setTxt('cnt-today', tasks.filter(function(t) { return t.due_date === td && t.status !== 'completed'; }).length);
+  setTxt('cnt-overdue', tasks.filter(function(t) { return isOverdue(t); }).length);
 }
 
-// ====================================================
 // CATEGORIES
-// ====================================================
 function renderSidebarCats() {
   var el = G('sb-cat-list'); if (!el) return;
   el.innerHTML = cats.map(function(c) {
-    var n = tasks.filter(function(t){ return t.category === c.name && t.status !== 'completed'; }).length;
+    var n = tasks.filter(function(t) { return t.category === c.name && t.status !== 'completed'; }).length;
     return '<button class="sb-btn" onclick="filterByCat(\'' + escH(c.name) + '\')">' +
       '<span style="width:10px;height:10px;border-radius:50%;background:' + c.color + ';display:inline-block;flex-shrink:0"></span>' +
-      '<span class="sb-lbl">' + escH(c.name) + '</span>' +
-      '<span class="sb-cnt">' + n + '</span></button>';
+      '<span class="sb-lbl">' + escH(c.name) + '</span><span class="sb-cnt">' + n + '</span></button>';
   }).join('');
 }
 
 function renderCatPanel() {
   var el = G('cat-panel-list'); if (!el) return;
   el.innerHTML = cats.map(function(c) {
-    var n = tasks.filter(function(t){ return t.category === c.name && t.status !== 'completed'; }).length;
+    var n = tasks.filter(function(t) { return t.category === c.name && t.status !== 'completed'; }).length;
     return '<div class="cat-list-item" onclick="filterByCat(\'' + escH(c.name) + '\')">' +
       '<span class="cat-color-swatch" style="background:' + c.color + '"></span>' +
       '<span class="cat-item-name">' + escH(c.name) + '</span>' +
@@ -1424,22 +1465,19 @@ function renderCatPanel() {
 }
 
 function renderCatDropdowns() {
-  var selects = ['inp-cat', 'al-category'];
-  selects.forEach(function(id) {
+  ['inp-cat', 'al-category'].forEach(function(id) {
     var el = G(id); if (!el) return;
     var cur = el.value;
-    var isFilter = id === 'al-category';
-    el.innerHTML = (isFilter ? '<option value="">All Categories</option>' : '') +
-      cats.map(function(c){ return '<option value="' + escH(c.name) + '">' + escH(c.name) + '</option>'; }).join('');
+    var isF = id === 'al-category';
+    el.innerHTML = (isF ? '<option value="">All Categories</option>' : '') +
+      cats.map(function(c) { return '<option value="' + escH(c.name) + '">' + escH(c.name) + '</option>'; }).join('');
     if (cur) el.value = cur;
   });
 }
 
-// ====================================================
 // NOTIFICATIONS
-// ====================================================
 function updateNotifBadge() {
-  var u = notifs.filter(function(n){ return !n.is_read; }).length;
+  var u = notifs.filter(function(n) { return !n.is_read; }).length;
   var b = G('notif-badge'), h = G('notif-head-count');
   if (b) { b.textContent = u; b.style.display = u > 0 ? 'flex' : 'none'; }
   if (h) { h.textContent = u; h.style.display = u > 0 ? 'inline' : 'none'; }
@@ -1454,141 +1492,117 @@ function renderNotifList() {
   el.innerHTML = notifs.slice(0, 50).map(function(n) {
     var pc = n.priority === 'high' ? 'pri-high' : n.priority === 'medium' ? 'pri-medium' : '';
     var ic = (n.type === 'overdue' || n.type === 'upcoming_high') ? 'fa-exclamation-circle' :
-             n.type === 'due_today' ? 'fa-calendar-check' :
-             n.type === 'created'   ? 'fa-check-circle' : 'fa-bell';
-    return '<div class="notif-item ' + (n.is_read?'':'unread') + ' ' + pc + '" onclick="readOneNotif(' + n.id + ')">' +
-      '<div class="notif-icon t-' + (n.type||'reminder') + '"><i class="fas ' + ic + '"></i></div>' +
-      '<div class="notif-content"><div class="notif-msg">' + escH(n.message||'') + '</div>' +
+             n.type === 'due_today' ? 'fa-calendar-check' : n.type === 'created' ? 'fa-check-circle' : 'fa-bell';
+    return '<div class="notif-item ' + (n.is_read ? '' : 'unread') + ' ' + pc + '" onclick="readOneNotif(' + n.id + ')">' +
+      '<div class="notif-icon t-' + (n.type || 'reminder') + '"><i class="fas ' + ic + '"></i></div>' +
+      '<div class="notif-content"><div class="notif-msg">' + escH(n.message || '') + '</div>' +
       '<div class="notif-when">' + timeAgo(n.created_at) + '</div></div></div>';
   }).join('');
 }
 
 function toggleNotifPanel() { G('notif-panel').classList.toggle('open'); }
-function readOneNotif(id) { http('/notifications/' + id + '/read','PUT',null, function(){ refreshNotifs(); }); }
-function markAllRead()    { http('/notifications/read-all','PUT',null, function(){ refreshNotifs(); showToast('All read','ok'); }); }
-function clearReadNotifs(){ http('/notifications/clear-read','DELETE',null, function(){ refreshNotifs(); showToast('Cleared','ok'); }); }
-
+function readOneNotif(id) { http('/notifications/' + id + '/read', 'PUT', null, function() { refreshNotifs(); }); }
+function markAllRead() { http('/notifications/read-all', 'PUT', null, function() { refreshNotifs(); showToast('All read', 'ok'); }); }
+function clearReadNotifs() { http('/notifications/clear-read', 'DELETE', null, function() { refreshNotifs(); showToast('Cleared', 'ok'); }); }
 function refreshNotifs() {
-  http('/notifications', 'GET', null, function(d) {
-    notifs = d || [];
-    updateNotifBadge();
-    renderNotifList();
-  });
+  http('/notifications', 'GET', null, function(d) { notifs = d || []; updateNotifBadge(); renderNotifList(); });
 }
 
-// ====================================================
-// TASK ROW
-// ====================================================
+// TASK ROW HTML
 function buildTaskRow(t) {
-  var ov   = isOverdue(t);
-  var tags = parseTags(t.tags).map(function(tg){ return '<span class="tag-chip">#' + escH(tg) + '</span>'; }).join('');
-  var pc   = {high:'bp-high',medium:'bp-medium',low:'bp-low'}[t.priority] || 'bp-medium';
-  var sc   = 'bs-' + (t.status || 'pending');
-  var rc   = 'task-item' + (t.status==='completed'?' is-done':'') + (ov?' is-overdue':'') + (t.is_pinned?' is-pinned-row':'');
-  var chk  = 'check-circle' + (t.status==='completed'?' checked':'');
-  var cci  = t.status === 'completed' ? '<i class="fas fa-check" style="font-size:9px"></i>' : '';
-
+  var ov = isOverdue(t);
+  var tags = parseTags(t.tags).map(function(tg) { return '<span class="tag-chip">#' + escH(tg) + '</span>'; }).join('');
+  var pc = { high: 'bp-high', medium: 'bp-medium', low: 'bp-low' }[t.priority] || 'bp-medium';
+  var sc = 'bs-' + (t.status || 'pending');
+  var rc = 'task-item' + (t.status === 'completed' ? ' is-done' : '') + (ov ? ' is-overdue' : '') + (t.is_pinned ? ' is-pinned-row' : '');
+  var chk = 'check-circle' + (t.status === 'completed' ? ' checked' : '');
+  var ci = t.status === 'completed' ? '<i class="fas fa-check" style="font-size:9px"></i>' : '';
   var h = '<div class="' + rc + '">';
-  h += '<div class="' + chk + '" onclick="toggleTask(' + t.id + ',event)">' + cci + '</div>';
+  h += '<div class="' + chk + '" onclick="toggleTask(' + t.id + ',event)">' + ci + '</div>';
   h += '<div class="task-content" onclick="editTaskById(' + t.id + ')">';
   h += '<div class="task-name-row">';
   if (t.is_pinned) h += '<i class="fas fa-thumbtack" style="color:var(--WA);font-size:10px"></i>';
   h += escH(t.title);
   h += ' <span class="badge-priority ' + pc + '">' + escH(t.priority) + '</span>';
-  h += ' <span class="badge-status ' + sc + '">' + escH((t.status||'').replace(/_/g,' ')) + '</span>';
+  h += ' <span class="badge-status ' + sc + '">' + escH((t.status || '').replace(/_/g, ' ')) + '</span>';
   h += '</div>';
   if (t.description) h += '<div class="task-desc-text">' + escH(t.description) + '</div>';
   h += '<div class="task-footer-row">';
   if (t.due_date) {
-    h += '<span class="' + (ov?'overdue-text':'') + '"><i class="fas fa-calendar-alt"></i>' + fmtDate(t.due_date);
+    h += '<span class="' + (ov ? 'overdue-text' : '') + '"><i class="fas fa-calendar-alt"></i>' + fmtDate(t.due_date);
     if (t.due_time) h += ' ' + t.due_time;
     if (ov) h += ' ⚠️';
     h += '</span>';
   }
   h += '<span><i class="fas fa-folder"></i>' + escH(t.category) + '</span>';
   if (t.assigned_to) h += '<span><i class="fas fa-user"></i>' + escH(t.assigned_to) + '</span>';
-  h += '<span><i class="fas fa-bell"></i>' + (t.reminder_mins||30) + 'm</span>';
-  h += '</div>';
+  h += '<span><i class="fas fa-bell"></i>' + (t.reminder_mins || 30) + 'm</span></div>';
   if (tags) h += '<div style="margin-top:6px">' + tags + '</div>';
   h += '</div>';
   h += '<div class="task-actions-row">';
-  h += '<button class="task-act-btn" onclick="pinTask(' + t.id + ',event)" title="Pin"><i class="fas fa-thumbtack"></i></button>';
-  h += '<button class="task-act-btn" onclick="editTaskById(' + t.id + ')" title="Edit"><i class="fas fa-pen"></i></button>';
-  h += '<button class="task-act-btn del" onclick="deleteTask(' + t.id + ',event)" title="Delete"><i class="fas fa-trash"></i></button>';
+  h += '<button class="task-act-btn" onclick="pinTask(' + t.id + ',event)"><i class="fas fa-thumbtack"></i></button>';
+  h += '<button class="task-act-btn" onclick="editTaskById(' + t.id + ')"><i class="fas fa-pen"></i></button>';
+  h += '<button class="task-act-btn del" onclick="deleteTask(' + t.id + ',event)"><i class="fas fa-trash"></i></button>';
   h += '</div></div>';
   return h;
 }
 
 function buildEmpty(msg, sub, noBtn) {
-  var h = '<div class="empty-state">' +
-    '<div class="empty-icon-box"><i class="fas fa-clipboard-list"></i></div>' +
-    '<h3>' + (msg || 'No tasks found') + '</h3>' +
-    '<p>' + (sub || 'Create your first task to get started') + '</p>';
+  var h = '<div class="empty-state"><div class="empty-icon-box"><i class="fas fa-clipboard-list"></i></div>' +
+    '<h3>' + (msg || 'No tasks found') + '</h3><p>' + (sub || 'Create your first task to get started') + '</p>';
   if (!noBtn) h += '<button class="btn btn-primary" onclick="openTaskModal(null)"><i class="fas fa-plus"></i> New Task</button>';
-  h += '</div>';
-  return h;
+  return h + '</div>';
 }
 
-// ====================================================
 // TASK MODAL
-// ====================================================
 function openTaskModal(task) {
-  var fields = ['task-edit-id','inp-title','inp-desc','inp-date','inp-time','inp-assign','inp-tags','inp-notes'];
-  fields.forEach(function(id){ var e=G(id); if(e) e.value=''; });
-  G('inp-pri').value    = 'medium';
-  G('inp-status').value = 'pending';
+  var fields = ['task-edit-id', 'inp-title', 'inp-desc', 'inp-date', 'inp-time', 'inp-assign', 'inp-tags', 'inp-notes'];
+  fields.forEach(function(id) { var e = G(id); if (e) e.value = ''; });
+  G('inp-pri').value = 'medium'; G('inp-status').value = 'pending';
   G('inp-remind').value = cfg.default_reminder_medium || 30;
   G('task-modal-title').textContent = '✨ New Task';
   renderCatDropdowns();
   if (task) {
     G('task-modal-title').textContent = '✏️ Edit Task';
     G('task-edit-id').value = task.id;
-    G('inp-title').value    = task.title         || '';
-    G('inp-desc').value     = task.description   || '';
-    G('inp-cat').value      = task.category      || 'General';
-    G('inp-pri').value      = task.priority      || 'medium';
-    G('inp-date').value     = task.due_date      || '';
-    G('inp-time').value     = task.due_time      || '';
-    G('inp-status').value   = task.status        || 'pending';
-    G('inp-remind').value   = task.reminder_mins || 30;
-    G('inp-assign').value   = task.assigned_to   || '';
-    G('inp-tags').value     = parseTags(task.tags).join(', ');
-    G('inp-notes').value    = task.notes         || '';
+    G('inp-title').value = task.title || ''; G('inp-desc').value = task.description || '';
+    G('inp-cat').value = task.category || 'General'; G('inp-pri').value = task.priority || 'medium';
+    G('inp-date').value = task.due_date || ''; G('inp-time').value = task.due_time || '';
+    G('inp-status').value = task.status || 'pending'; G('inp-remind').value = task.reminder_mins || 30;
+    G('inp-assign').value = task.assigned_to || '';
+    G('inp-tags').value = parseTags(task.tags).join(', ');
+    G('inp-notes').value = task.notes || '';
   }
   G('task-modal').classList.add('open');
-  setTimeout(function(){ var f=G('inp-title'); if(f) f.focus(); }, 160);
+  setTimeout(function() { var f = G('inp-title'); if (f) f.focus(); }, 160);
 }
 
 function closeTaskModal() { G('task-modal').classList.remove('open'); }
 
 function editTaskById(id) {
-  var t = tasks.find(function(x){ return x.id === id; });
+  var t = tasks.find(function(x) { return x.id === id; });
   if (t) openTaskModal(t);
 }
 
-G('inp-pri').addEventListener('change', function() {
-  var rm = { high: cfg.default_reminder_high||15, medium: cfg.default_reminder_medium||30, low: cfg.default_reminder_low||60 };
-  G('inp-remind').value = rm[this.value] || 30;
-});
+if (G('inp-pri')) {
+  G('inp-pri').addEventListener('change', function() {
+    var rm = { high: cfg.default_reminder_high || 15, medium: cfg.default_reminder_medium || 30, low: cfg.default_reminder_low || 60 };
+    G('inp-remind').value = rm[this.value] || 30;
+  });
+}
 
 function submitTask() {
-  var id    = G('task-edit-id').value;
+  var id = G('task-edit-id').value;
   var title = G('inp-title').value.trim();
   if (!title) { showToast('Title is required!', 'er'); return; }
   var rawTags = G('inp-tags').value;
-  var tags = rawTags ? rawTags.split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [];
+  var tags = rawTags ? rawTags.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
   var payload = {
-    title:         title,
-    description:   G('inp-desc').value,
-    category:      G('inp-cat').value,
-    priority:      G('inp-pri').value,
-    status:        G('inp-status').value,
-    due_date:      G('inp-date').value  || null,
-    due_time:      G('inp-time').value  || null,
-    reminder_mins: parseInt(G('inp-remind').value),
-    assigned_to:   G('inp-assign').value,
-    tags:          tags,
-    notes:         G('inp-notes').value
+    title: title, description: G('inp-desc').value, category: G('inp-cat').value,
+    priority: G('inp-pri').value, status: G('inp-status').value,
+    due_date: G('inp-date').value || null, due_time: G('inp-time').value || null,
+    reminder_mins: parseInt(G('inp-remind').value), assigned_to: G('inp-assign').value,
+    tags: tags, notes: G('inp-notes').value
   };
   var url = id ? '/tasks/' + id : '/tasks';
   var mth = id ? 'PUT' : 'POST';
@@ -1596,43 +1610,33 @@ function submitTask() {
     if (result && !result.error) {
       var isNew = !id;
       showToast(isNew ? '🎉 Task "' + title + '" created!' : '✅ Task updated!', 'ok');
-      // Show ONE popup when task is created — NOT queued from server
       if (isNew && cfg.popup_enabled !== 0) {
         showAlert({
           type: 'created', priority: payload.priority,
-          message: '"' + title + '" has been added to your tasks',
-          created_at: new Date().toISOString()
+          message: '"' + title + '" has been added', created_at: new Date().toISOString()
         }, payload.priority);
       }
-      closeTaskModal();
-      loadAll();
-    } else {
-      showToast('Failed to save task', 'er');
-    }
+      closeTaskModal(); loadAll();
+    } else { showToast('Failed to save task', 'er'); }
   });
 }
 
 function toggleTask(id, e) {
   e.stopPropagation();
-  var t = tasks.find(function(x){ return x.id === id; });
+  var t = tasks.find(function(x) { return x.id === id; });
   if (!t) return;
   var ns = t.status === 'completed' ? 'pending' : 'completed';
   http('/tasks/' + id, 'PUT', { status: ns }, function(r) {
-    if (r) {
-      showToast(ns === 'completed' ? '🎉 Task completed!' : 'Task reopened', 'ok');
-      if (ns === 'completed') playNotifSound('low');
-      loadAll();
-    }
+    if (r) { showToast(ns === 'completed' ? '🎉 Task completed!' : 'Task reopened', 'ok');
+      if (ns === 'completed') playNotifSound('low'); loadAll(); }
   });
 }
 
 function deleteTask(id, e) {
   e.stopPropagation();
-  var t = tasks.find(function(x){ return x.id === id; });
+  var t = tasks.find(function(x) { return x.id === id; });
   if (!t || !confirm('Delete "' + t.title + '"?\nThis cannot be undone.')) return;
-  http('/tasks/' + id, 'DELETE', null, function(r) {
-    if (r) { showToast('Task deleted', 'ok'); loadAll(); }
-  });
+  http('/tasks/' + id, 'DELETE', null, function(r) { if (r) { showToast('Task deleted', 'ok'); loadAll(); } });
 }
 
 function pinTask(id, e) {
@@ -1640,44 +1644,52 @@ function pinTask(id, e) {
   http('/tasks/' + id + '/pin', 'PUT', null, function(r) { if (r) loadAll(); });
 }
 
-// ====================================================
 // CATEGORY MODAL
-// ====================================================
-function openCatModal()  { G('cat-modal').classList.add('open'); }
+function openCatModal() { G('cat-modal').classList.add('open'); }
 function closeCatModal() { G('cat-modal').classList.remove('open'); }
 function submitCat() {
   var name = G('cat-name-inp').value.trim();
   if (!name) { showToast('Name required', 'er'); return; }
   http('/categories', 'POST', { name: name, color: G('cat-color-inp').value }, function(r) {
-    if (r && !r.error) {
-      showToast('"' + name + '" created', 'ok');
-      G('cat-name-inp').value = '';
-      closeCatModal();
-      loadAll();
-    } else { showToast('Error', 'er'); }
+    if (r && !r.error) { showToast('"' + name + '" created', 'ok'); G('cat-name-inp').value = ''; closeCatModal(); loadAll(); }
+    else { showToast('Error creating category', 'er'); }
   });
 }
 
-// ====================================================
-// SETTINGS MODAL
-// ====================================================
-function openSettingsModal()  { G('settings-modal').classList.add('open'); }
+// MODALS
+function openSettingsModal() { G('settings-modal').classList.add('open'); }
 function closeSettingsModal() { G('settings-modal').classList.remove('open'); }
-
-// ====================================================
-// DATA MODAL
-// ====================================================
-function openDataModal()  { G('data-modal').classList.add('open'); }
+function openDataModal() { G('data-modal').classList.add('open'); }
 function closeDataModal() { G('data-modal').classList.remove('open'); }
+
+function openProfileModal() {
+  if (currentUser) {
+    if (G('profile-name-input')) G('profile-name-input').value = currentUser.name;
+    if (G('profile-email-input')) G('profile-email-input').value = currentUser.email;
+    if (G('profile-role-input')) G('profile-role-input').value = currentUser.role || '';
+  }
+  G('profile-modal').classList.add('open');
+}
+function closeProfileModal() { G('profile-modal').classList.remove('open'); }
+
+function openLoginModal() { closeProfileModal(); G('login-modal').classList.add('open'); }
+function closeLoginModal() { G('login-modal').classList.remove('open'); }
+
+function switchAuthTab(tab) {
+  G('tab-login').classList.toggle('active', tab === 'login');
+  G('tab-signup').classList.toggle('active', tab === 'signup');
+  G('login-form').style.display = tab === 'login' ? 'block' : 'none';
+  G('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+}
+
+// EXPORT / IMPORT
 function doExport() {
   http('/export', 'GET', null, function(data) {
     if (!data) return;
-    var b = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
-    var u = URL.createObjectURL(b);
-    var a = document.createElement('a');
+    var b = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var u = URL.createObjectURL(b); var a = document.createElement('a');
     a.href = u; a.download = 'taskpro_' + todayStr() + '.json'; a.click();
-    URL.revokeObjectURL(u);
-    showToast('Exported!', 'ok');
+    URL.revokeObjectURL(u); showToast('Exported!', 'ok');
   });
 }
 function doImport(ev) {
@@ -1691,209 +1703,107 @@ function doImport(ev) {
       });
     } catch(err) { showToast('Invalid JSON', 'er'); }
   };
-  rd.readAsText(f);
-  ev.target.value = '';
+  rd.readAsText(f); ev.target.value = '';
 }
 
-// ====================================================
-// PROFILE MODAL
-// ====================================================
-function openProfileModal() {
-  G('profile-name-input').value  = userProfile.name;
-  G('profile-email-input').value = userProfile.email;
-  G('profile-role-input').value  = userProfile.role;
-  G('profile-modal').classList.add('open');
-}
-function closeProfileModal() { G('profile-modal').classList.remove('open'); }
-function saveProfile() {
-  userProfile.name  = G('profile-name-input').value.trim() || userProfile.name;
-  userProfile.email = G('profile-email-input').value.trim() || userProfile.email;
-  userProfile.role  = G('profile-role-input').value.trim() || userProfile.role;
-  userProfile.initials = makeInitials(userProfile.name);
-  saveProfileLS();
-  applyProfileToUI();
-  showToast('Profile saved ✅', 'ok');
-  closeProfileModal();
-}
-function loadProfile() {
-  try {
-    var saved = localStorage.getItem('taskpro-profile');
-    if (saved) userProfile = JSON.parse(saved);
-  } catch(e) {}
-  applyProfileToUI();
-}
-function saveProfileLS() {
-  localStorage.setItem('taskpro-profile', JSON.stringify(userProfile));
-}
-function applyProfileToUI() {
-  var ini = userProfile.initials || makeInitials(userProfile.name);
-  setTxt('sb-avatar-initials',   ini);
-  setTxt('sb-user-name',         userProfile.name);
-  setTxt('sb-user-role',         userProfile.role);
-  setTxt('tb-avatar-initials',   ini);
-  setTxt('tb-profile-name',      userProfile.name);
-  setTxt('tb-profile-role',      userProfile.role);
-  setTxt('profile-big-initials', ini);
-  setTxt('profile-display-name', userProfile.name);
-  setTxt('profile-display-email',userProfile.email);
-}
-function makeInitials(name) {
-  var parts = (name || '').split(' ').filter(Boolean);
-  return parts.length >= 2
-    ? (parts[0][0] + parts[parts.length-1][0]).toUpperCase()
-    : (parts[0] ? parts[0].substring(0,2).toUpperCase() : 'U');
-}
-
-// ====================================================
-// LOGIN MODAL
-// ====================================================
-function openLoginModal()  { closeProfileModal(); G('login-modal').classList.add('open'); }
-function closeLoginModal() { G('login-modal').classList.remove('open'); }
-function switchAuthTab(tab) {
-  G('tab-login').classList.toggle('active', tab === 'login');
-  G('tab-signup').classList.toggle('active', tab === 'signup');
-  G('login-form').style.display  = tab === 'login'  ? 'block' : 'none';
-  G('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
-}
-function doLogin() {
-  var email = G('login-email').value.trim();
-  var pass  = G('login-password').value;
-  if (!email || !pass) { showToast('Please fill all fields', 'er'); return; }
-  // Simulate login (replace with real auth)
-  var name = email.split('@')[0].replace(/[^a-zA-Z ]/g,' ');
-  name = name.charAt(0).toUpperCase() + name.slice(1);
-  userProfile = { name: name, email: email, role: 'Member', initials: makeInitials(name) };
-  saveProfileLS(); applyProfileToUI();
-  showToast('Welcome back, ' + name + '! 👋', 'ok');
-  closeLoginModal();
-}
-function doSignup() {
-  var name  = G('signup-name').value.trim();
-  var email = G('signup-email').value.trim();
-  var role  = G('signup-role').value.trim();
-  if (!name || !email) { showToast('Name and email required', 'er'); return; }
-  userProfile = { name: name, email: email, role: role || 'Member', initials: makeInitials(name) };
-  saveProfileLS(); applyProfileToUI();
-  showToast('Account created! Welcome, ' + name + '! 🎉', 'ok');
-  closeLoginModal();
-}
-function doGuestLogin() {
-  userProfile = { name: 'Guest User', email: 'guest@taskpro.app', role: 'Guest', initials: 'GU' };
-  saveProfileLS(); applyProfileToUI();
-  showToast('Continuing as guest 👤', 'ok');
-  closeLoginModal();
-}
-
-// ====================================================
 // NAVIGATION
-// ====================================================
 function navigateTo(pageId, btn) {
-  page = pageId;
-  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
-  document.querySelectorAll('.sb-btn').forEach(function(b){ b.classList.remove('active'); });
+  activePage = pageId;
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.sb-btn').forEach(function(b) { b.classList.remove('active'); });
   var pg = G('page-' + pageId); if (pg) pg.classList.add('active');
   if (btn) btn.classList.add('active');
   renderActivePage();
-  if (window.innerWidth <= 768) G('sidebar').classList.remove('mobile-show');
+  if (window.innerWidth <= 768) { var sb = G('sidebar'); if (sb) sb.classList.remove('mobile-show'); }
 }
 
 function filterByCat(name) {
   navigateTo('all-tasks', document.querySelector('[data-page="all-tasks"]'));
-  setTimeout(function(){ var s=G('al-category'); if(s){s.value=name;renderAll();} },50);
+  setTimeout(function() { var s = G('al-category'); if (s) { s.value = name; renderAll(); } }, 50);
 }
 
 function onSearch() {
   clearTimeout(searchTimer);
   searchTimer = setTimeout(function() {
-    if (page !== 'all-tasks') navigateTo('all-tasks', document.querySelector('[data-page="all-tasks"]'));
+    if (activePage !== 'all-tasks') navigateTo('all-tasks', document.querySelector('[data-page="all-tasks"]'));
     else renderAll();
   }, 300);
 }
 
-// ====================================================
 // SIDEBAR / THEME
-// ====================================================
 function toggleSidebar() {
   var sb = G('sidebar');
   if (window.innerWidth <= 768) sb.classList.toggle('mobile-show');
   else sb.classList.toggle('slim');
 }
+
 function toggleTheme() {
   document.body.classList.toggle('dark');
   var dk = document.body.classList.contains('dark');
   G('theme-icon').className = dk ? 'fas fa-sun' : 'fas fa-moon';
   localStorage.setItem('tp-theme', dk ? 'dark' : 'light');
 }
+
 function applyTheme() {
   if (localStorage.getItem('tp-theme') === 'dark') {
     document.body.classList.add('dark');
     G('theme-icon').className = 'fas fa-sun';
   }
 }
+
 function setGreeting() {
   var h = new Date().getHours();
-  var msg = h<12 ? 'Good Morning! ☀️' : h<17 ? 'Good Afternoon! 🌤️' : 'Good Evening! 🌙';
+  var msg = h < 12 ? 'Good Morning! ☀️' : h < 17 ? 'Good Afternoon! 🌤️' : 'Good Evening! 🌙';
   setTxt('greeting', msg);
-  setTxt('date-text', new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+  setTxt('date-text', new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }));
 }
 
-// ====================================================
 // TOAST
-// ====================================================
 function showToast(msg, tp) {
   tp = tp || 'ok';
   var w = G('toast-wrap'); if (!w) return;
   var el = document.createElement('div');
   el.className = 'toast t-' + tp;
-  var icons = { ok:'fa-check-circle', er:'fa-times-circle', wa:'fa-exclamation-triangle' };
-  el.innerHTML = '<i class="fas ' + (icons[tp]||'fa-info-circle') + ' t-icon"></i>' +
+  var icons = { ok: 'fa-check-circle', er: 'fa-times-circle', wa: 'fa-exclamation-triangle' };
+  el.innerHTML = '<i class="fas ' + (icons[tp] || 'fa-info-circle') + ' t-icon"></i>' +
     '<span class="t-text">' + escH(msg) + '</span>' +
     '<button class="t-close" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>';
   w.appendChild(el);
   setTimeout(function() {
     el.style.opacity = '0'; el.style.transform = 'translateX(60px)'; el.style.transition = 'all .3s';
-    setTimeout(function(){ if(el.parentNode) el.remove(); }, 300);
+    setTimeout(function() { if (el.parentNode) el.remove(); }, 300);
   }, 5000);
 }
 
-// ====================================================
 // UTILS
-// ====================================================
 function G(id) { return document.getElementById(id); }
-function setTxt(id, v) { var e = G(id); if(e) e.textContent = v; }
+function setTxt(id, v) { var e = G(id); if (e) e.textContent = v; }
 function todayStr() { return new Date().toISOString().split('T')[0]; }
 function isOverdue(t) { return t.due_date && t.due_date < todayStr() && t.status !== 'completed'; }
-function fmtDate(s) {
-  if (!s) return '';
-  return new Date(s + 'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-}
+function fmtDate(s) { if (!s) return ''; return new Date(s + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
 function timeAgo(s) {
   if (!s) return '';
   var d = Math.floor((Date.now() - new Date(s)) / 1000);
   if (d < 60) return 'Just now';
-  if (d < 3600) return Math.floor(d/60) + 'm ago';
-  if (d < 86400) return Math.floor(d/3600) + 'h ago';
-  return Math.floor(d/86400) + 'd ago';
+  if (d < 3600) return Math.floor(d / 60) + 'm ago';
+  if (d < 86400) return Math.floor(d / 3600) + 'h ago';
+  return Math.floor(d / 86400) + 'd ago';
 }
-function parseTags(s) { try { return JSON.parse(s||'[]'); } catch(e){ return []; } }
-function escH(s) {
-  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function parseTags(s) { try { return JSON.parse(s || '[]'); } catch(e) { return []; } }
+function escH(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
-// ====================================================
 // KEYBOARD
-// ====================================================
 document.addEventListener('keydown', function(e) {
-  if ((e.ctrlKey||e.metaKey) && e.key==='k') { e.preventDefault(); var si=G('search-input'); if(si) si.focus(); }
-  if ((e.ctrlKey||e.metaKey) && e.key==='n') { e.preventDefault(); openTaskModal(null); }
-  if (e.key==='Escape') {
-    document.querySelectorAll('.modal-bg.open').forEach(function(m){ m.classList.remove('open'); });
-    var np = G('notif-panel'); if(np) np.classList.remove('open');
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') { e.preventDefault(); var si = G('search-input'); if (si) si.focus(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openTaskModal(null); }
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-bg.open').forEach(function(m) { m.classList.remove('open'); });
+    var np = G('notif-panel'); if (np) np.classList.remove('open');
   }
 });
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#bell-btn') && !e.target.closest('#notif-panel')) {
-    var np = G('notif-panel'); if(np) np.classList.remove('open');
+    var np = G('notif-panel'); if (np) np.classList.remove('open');
   }
 });
 </script>
