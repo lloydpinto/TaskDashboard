@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
-DATA_FILE = '/tmp/taskpro_multiuser.json'
-SECRET = os.environ.get('APP_SECRET', 'taskpro-default-secret-2024')
+DATA_FILE = '/tmp/taskpro_v3.json'
+SECRET = os.environ.get('APP_SECRET', 'taskpro2024secret')
 
 DEFAULT_CATS = [
     {"id":1,"name":"General","color":"#6366f1"},
@@ -21,772 +21,475 @@ DEFAULT_CATS = [
 ]
 
 DEFAULT_SETTINGS = {
-    "default_reminder_low": 60,
-    "default_reminder_medium": 30,
-    "default_reminder_high": 15,
-    "sound_enabled": 1,
-    "popup_enabled": 1,
-    "browser_notif_enabled": 1,
-    "popup_duration_low": 5,
-    "popup_duration_medium": 8,
-    "popup_duration_high": 12,
-    "auto_snooze_mins": 10,
-    "check_interval_secs": 30
+    "default_reminder_low":60,"default_reminder_medium":30,
+    "default_reminder_high":15,"sound_enabled":1,"popup_enabled":1,
+    "browser_notif_enabled":1,"popup_duration_low":5,
+    "popup_duration_medium":8,"popup_duration_high":12,
+    "auto_snooze_mins":10,"check_interval_secs":30
 }
-
 
 def load_db():
     try:
         if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, 'r') as f:
+            with open(DATA_FILE,'r') as f:
                 return json.load(f)
     except Exception as e:
-        print(f"Load error: {e}")
-    return {"users": {}}
-
+        print(f"DB load error: {e}")
+    return {"users":{}}
 
 def save_db(db):
     try:
-        with open(DATA_FILE, 'w') as f:
+        with open(DATA_FILE,'w') as f:
             json.dump(db, f)
     except Exception as e:
-        print(f"Save error: {e}")
+        print(f"DB save error: {e}")
 
-
-def hash_password(pw):
+def hash_pw(pw):
     return hashlib.sha256((pw + SECRET).encode()).hexdigest()
 
+def make_token(uid):
+    ts = str(int(time.time()))
+    h = hashlib.sha256(f"{uid}:{SECRET}:{ts}".encode()).hexdigest()[:32]
+    return f"{h}{ts}.{uid}"
 
-def generate_token(user_id):
-    raw = f"{user_id}:{SECRET}:{int(time.time())}"
-    token_hash = hashlib.sha256(raw.encode()).hexdigest()[:48]
-    return f"{token_hash}.{user_id}"
-
-
-def extract_user():
-    auth_header = request.headers.get('Authorization', '')
-    token = ''
-    if auth_header.startswith('Bearer '):
-        token = auth_header[7:]
-    else:
-        token = request.args.get('token', '')
-
+def parse_token(token):
     if not token or '.' not in token:
-        return None, None
+        return None
+    try:
+        parts = token.rsplit('.', 1)
+        if len(parts) != 2:
+            return None
+        uid = parts[1]
+        db = load_db()
+        if uid in db.get('users', {}):
+            return uid
+    except:
+        pass
+    return None
 
-    parts = token.rsplit('.', 1)
-    if len(parts) != 2:
-        return None, None
+def get_uid():
+    auth = request.headers.get('Authorization', '')
+    token = auth[7:] if auth.startswith('Bearer ') else request.args.get('token', '')
+    return parse_token(token)
 
-    user_id = parts[1]
-    db = load_db()
-    if user_id in db.get('users', {}):
-        return user_id, db['users'][user_id]
-    return None, None
-
-
-def save_user(user_id, user_data):
-    db = load_db()
-    db['users'][user_id] = user_data
-    save_db(db)
-
-
-def next_id(user_data, collection):
-    val = user_data["ids"].get(collection, 1)
-    user_data["ids"][collection] = val + 1
-    return val
-
-
-def now_iso():
+def now():
     return datetime.now().isoformat()
 
+def nxt(udata, col):
+    v = udata['ids'].get(col, 1)
+    udata['ids'][col] = v + 1
+    return v
 
-def new_user_data(name, email, password_hash, role):
+def blank_user(name, email, pw_hash, role):
     return {
-        "name": name,
-        "email": email,
-        "password": password_hash,
-        "role": role,
-        "created_at": now_iso(),
-        "tasks": [],
+        "name": name, "email": email, "password": pw_hash, "role": role,
+        "created_at": now(), "tasks": [],
         "categories": json.loads(json.dumps(DEFAULT_CATS)),
         "notifications": [],
         "settings": json.loads(json.dumps(DEFAULT_SETTINGS)),
-        "ids": {"tasks": 1, "categories": 11, "notifications": 1}
+        "ids": {"tasks":1,"categories":11,"notifications":1}
     }
 
-
-def generate_notifications(user_data):
-    current = datetime.now()
-    today_str = current.strftime('%Y-%m-%d')
-    tomorrow_str = (current + timedelta(days=1)).strftime('%Y-%m-%d')
-
-    existing_notifs = [
-        x for x in user_data.get('notifications', [])
+def run_notifs(ud):
+    n = datetime.now()
+    td = n.strftime('%Y-%m-%d')
+    tm = (n + timedelta(days=1)).strftime('%Y-%m-%d')
+    ex_keys = set(
+        f"{x.get('task_id')}_{x.get('type')}"
+        for x in ud.get('notifications', [])
         if not x.get('is_dismissed')
-    ]
-    existing_keys = set(
-        f"{x.get('task_id')}_{x.get('type')}" for x in existing_notifs
     )
-
-    active_tasks = [
-        t for t in user_data.get('tasks', [])
-        if t.get('status') != 'completed' and t.get('due_date')
-    ]
-
-    for task in active_tasks:
-        task_id = task['id']
-        priority = task.get('priority', 'medium')
-        emoji = '🔴' if priority == 'high' else '🟡' if priority == 'medium' else '🟢'
-        due_date = task.get('due_date', '')
-
-        # Check overdue
-        if due_date and due_date < today_str:
-            key = f"{task_id}_overdue"
-            if key not in existing_keys:
-                try:
-                    days_overdue = max(1, (current - datetime.strptime(due_date, '%Y-%m-%d')).days)
-                except:
-                    days_overdue = 1
-                user_data['notifications'].insert(0, {
-                    'id': next_id(user_data, 'notifications'),
-                    'task_id': task_id,
-                    'message': f"{emoji} OVERDUE ({days_overdue}d): '{task['title']}'",
-                    'type': 'overdue',
-                    'priority': priority,
-                    'is_read': 0,
-                    'is_dismissed': 0,
-                    'created_at': now_iso(),
-                    'task_title': task['title'],
-                    'task_priority': priority
-                })
-
-        # Check due today
-        elif due_date == today_str:
-            key = f"{task_id}_due_today"
-            if key not in existing_keys:
-                time_info = f" at {task['due_time']}" if task.get('due_time') else ''
-                user_data['notifications'].insert(0, {
-                    'id': next_id(user_data, 'notifications'),
-                    'task_id': task_id,
-                    'message': f"{emoji} Due Today{time_info}: '{task['title']}'",
-                    'type': 'due_today',
-                    'priority': priority,
-                    'is_read': 0,
-                    'is_dismissed': 0,
-                    'created_at': now_iso(),
-                    'task_title': task['title'],
-                    'task_priority': priority
-                })
-
-        # Check time-based reminder
-        if task.get('due_time') and not task.get('reminder_sent'):
+    for t in ud.get('tasks', []):
+        if t.get('status') == 'completed' or not t.get('due_date'):
+            continue
+        tid = t['id']; pri = t.get('priority','medium')
+        em = '🔴' if pri=='high' else '🟡' if pri=='medium' else '🟢'
+        dd = t.get('due_date','')
+        if dd < td:
+            k = f"{tid}_overdue"
+            if k not in ex_keys:
+                days = max(1,(n - datetime.strptime(dd,'%Y-%m-%d')).days)
+                ud['notifications'].insert(0,{
+                    'id':nxt(ud,'notifications'),'task_id':tid,
+                    'message':f"{em} OVERDUE ({days}d): '{t['title']}'",
+                    'type':'overdue','priority':pri,'is_read':0,'is_dismissed':0,
+                    'created_at':now(),'task_title':t['title'],'task_priority':pri})
+        elif dd == td:
+            k = f"{tid}_due_today"
+            if k not in ex_keys:
+                ti = f" at {t['due_time']}" if t.get('due_time') else ''
+                ud['notifications'].insert(0,{
+                    'id':nxt(ud,'notifications'),'task_id':tid,
+                    'message':f"{em} Due Today{ti}: '{t['title']}'",
+                    'type':'due_today','priority':pri,'is_read':0,'is_dismissed':0,
+                    'created_at':now(),'task_title':t['title'],'task_priority':pri})
+        if t.get('due_time') and not t.get('reminder_sent'):
             try:
-                due_datetime = datetime.strptime(
-                    f"{due_date} {task['due_time']}", '%Y-%m-%d %H:%M'
-                )
-                remind_mins = task.get('reminder_mins', 30) or 30
-                remind_at = due_datetime - timedelta(minutes=remind_mins)
+                due = datetime.strptime(f"{dd} {t['due_time']}",'%Y-%m-%d %H:%M')
+                rm = t.get('reminder_mins',30) or 30
+                ra = due - timedelta(minutes=rm)
+                if n >= ra and n < due:
+                    k = f"{tid}_reminder"
+                    if k not in ex_keys:
+                        ml = max(0,int((due-n).total_seconds()/60))
+                        ud['notifications'].insert(0,{
+                            'id':nxt(ud,'notifications'),'task_id':tid,
+                            'message':f"{em} REMINDER: '{t['title']}' in {ml} min!",
+                            'type':'reminder','priority':pri,'is_read':0,'is_dismissed':0,
+                            'created_at':now(),'task_title':t['title'],'task_priority':pri})
+                        t['reminder_sent'] = 1
+            except: pass
+        if pri == 'high' and dd == tm:
+            k = f"{tid}_upcoming_high"
+            if k not in ex_keys:
+                ud['notifications'].insert(0,{
+                    'id':nxt(ud,'notifications'),'task_id':tid,
+                    'message':f"🔴 HIGH PRIORITY tomorrow: '{t['title']}'",
+                    'type':'upcoming_high','priority':'high','is_read':0,'is_dismissed':0,
+                    'created_at':now(),'task_title':t['title'],'task_priority':'high'})
+    ud['notifications'] = ud['notifications'][:80]
 
-                if current >= remind_at and current < due_datetime:
-                    key = f"{task_id}_reminder"
-                    if key not in existing_keys:
-                        mins_left = max(0, int(
-                            (due_datetime - current).total_seconds() / 60
-                        ))
-                        user_data['notifications'].insert(0, {
-                            'id': next_id(user_data, 'notifications'),
-                            'task_id': task_id,
-                            'message': f"{emoji} REMINDER: '{task['title']}' in {mins_left} min!",
-                            'type': 'reminder',
-                            'priority': priority,
-                            'is_read': 0,
-                            'is_dismissed': 0,
-                            'created_at': now_iso(),
-                            'task_title': task['title'],
-                            'task_priority': priority
-                        })
-                        task['reminder_sent'] = 1
-            except Exception:
-                pass
-
-        # High priority tomorrow alert
-        if priority == 'high' and due_date == tomorrow_str:
-            key = f"{task_id}_upcoming_high"
-            if key not in existing_keys:
-                user_data['notifications'].insert(0, {
-                    'id': next_id(user_data, 'notifications'),
-                    'task_id': task_id,
-                    'message': f"🔴 HIGH PRIORITY tomorrow: '{task['title']}'",
-                    'type': 'upcoming_high',
-                    'priority': 'high',
-                    'is_read': 0,
-                    'is_dismissed': 0,
-                    'created_at': now_iso(),
-                    'task_title': task['title'],
-                    'task_priority': 'high'
-                })
-
-    # Keep only last 80 notifications
-    user_data['notifications'] = user_data['notifications'][:80]
-
-
-def require_auth():
-    user_id, user_data = extract_user()
-    if not user_id:
-        return None, None, (jsonify({'error': 'Authentication required'}), 401)
-    return user_id, user_data, None
-
-
-# ── CORS ────────────────────────────────────
 @app.after_request
-def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-    response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
-    return response
-
+def cors(r):
+    r.headers['Access-Control-Allow-Origin'] = '*'
+    r.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    r.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+    return r
 
 @app.before_request
-def handle_preflight():
+def preflight():
     if request.method == 'OPTIONS':
-        resp = jsonify({})
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
-        resp.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
-        return resp, 200
+        r = jsonify({})
+        r.headers['Access-Control-Allow-Origin'] = '*'
+        r.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+        r.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE,OPTIONS'
+        return r, 200
 
-
-# ── SERVE HTML ──────────────────────────────
-@app.route('/', methods=['GET'])
-def serve_app():
-    html_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        'static', 'app.html'
-    )
+@app.route('/')
+def serve():
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)),'static','app.html')
     try:
-        with open(html_path, 'r', encoding='utf-8') as f:
+        with open(p,'r',encoding='utf-8') as f:
             return Response(f.read(), content_type='text/html; charset=utf-8')
     except Exception as e:
-        return Response(
-            f'<h1>Error loading app: {e}</h1>',
-            content_type='text/html'
-        )
+        return Response(f'<h1>Error: {e}</h1>', content_type='text/html')
 
-
-# ── AUTH ROUTES ─────────────────────────────
+# ── AUTH ─────────────────────────────────────────────
 @app.route('/api/auth/signup', methods=['POST'])
-def auth_signup():
-    body = request.json or {}
-    name = body.get('name', '').strip()
-    email = body.get('email', '').strip().lower()
-    password = body.get('password', '')
-    role = body.get('role', 'Member').strip() or 'Member'
-
+def signup():
+    b = request.json or {}
+    name = b.get('name','').strip()
+    email = b.get('email','').strip().lower()
+    password = b.get('password','')
+    role = b.get('role','Member').strip() or 'Member'
     if not name or not email or not password:
-        return jsonify({'error': 'Name, email and password are required'}), 400
+        return jsonify({'error':'Name, email and password are required'}), 400
     if len(password) < 4:
-        return jsonify({'error': 'Password must be at least 4 characters'}), 400
-
+        return jsonify({'error':'Password must be at least 4 characters'}), 400
     db = load_db()
-    for uid, udata in db.get('users', {}).items():
-        if udata.get('email', '').lower() == email:
-            return jsonify({'error': 'Email already registered'}), 400
-
-    user_id = str(uuid.uuid4())[:12]
-    user_data = new_user_data(name, email, hash_password(password), role)
-    db['users'][user_id] = user_data
+    for u in db.get('users',{}).values():
+        if u.get('email','').lower() == email:
+            return jsonify({'error':'Email already registered'}), 400
+    uid = str(uuid.uuid4())[:12]
+    db['users'][uid] = blank_user(name, email, hash_pw(password), role)
     save_db(db)
-
-    token = generate_token(user_id)
-    return jsonify({
-        'token': token,
-        'user': {
-            'id': user_id, 'name': name,
-            'email': email, 'role': role
-        }
-    })
-
+    token = make_token(uid)
+    return jsonify({'token':token,'user':{'id':uid,'name':name,'email':email,'role':role}})
 
 @app.route('/api/auth/login', methods=['POST'])
-def auth_login():
-    body = request.json or {}
-    email = body.get('email', '').strip().lower()
-    password = body.get('password', '')
-
+def login():
+    b = request.json or {}
+    email = b.get('email','').strip().lower()
+    password = b.get('password','')
     if not email or not password:
-        return jsonify({'error': 'Email and password required'}), 400
-
-    pw_hash = hash_password(password)
+        return jsonify({'error':'Email and password required'}), 400
     db = load_db()
-    for uid, udata in db.get('users', {}).items():
-        if (udata.get('email', '').lower() == email and
-                udata.get('password') == pw_hash):
-            token = generate_token(uid)
-            return jsonify({
-                'token': token,
-                'user': {
-                    'id': uid, 'name': udata['name'],
-                    'email': udata['email'],
-                    'role': udata.get('role', 'Member')
-                }
-            })
-
-    return jsonify({'error': 'Invalid email or password'}), 401
-
+    for uid, u in db.get('users',{}).items():
+        if u.get('email','').lower() == email and u.get('password') == hash_pw(password):
+            token = make_token(uid)
+            return jsonify({'token':token,'user':{'id':uid,'name':u['name'],'email':u['email'],'role':u.get('role','Member')}})
+    return jsonify({'error':'Invalid email or password'}), 401
 
 @app.route('/api/auth/guest', methods=['POST'])
-def auth_guest():
+def guest():
     db = load_db()
-    guest_id = 'guest_' + str(uuid.uuid4())[:8]
-    guest_email = f"{guest_id}@guest.taskpro"
-    user_data = new_user_data('Guest User', guest_email, '', 'Guest')
-    db['users'][guest_id] = user_data
+    gid = 'g_' + str(uuid.uuid4())[:8]
+    em = f"{gid}@guest.tp"
+    db['users'][gid] = blank_user('Guest User', em, '', 'Guest')
     save_db(db)
-    token = generate_token(guest_id)
-    return jsonify({
-        'token': token,
-        'user': {
-            'id': guest_id, 'name': 'Guest User',
-            'email': guest_email, 'role': 'Guest'
-        }
-    })
+    token = make_token(gid)
+    return jsonify({'token':token,'user':{'id':gid,'name':'Guest User','email':em,'role':'Guest'}})
 
-
-@app.route('/api/auth/me', methods=['GET'])
-def auth_me():
-    uid, udata = extract_user()
+@app.route('/api/auth/me')
+def me():
+    uid = get_uid()
     if not uid:
-        return jsonify({'error': 'Not authenticated'}), 401
-    return jsonify({
-        'user': {
-            'id': uid, 'name': udata['name'],
-            'email': udata['email'],
-            'role': udata.get('role', 'Member')
-        }
-    })
-
+        return jsonify({'error':'Not authenticated'}), 401
+    db = load_db()
+    u = db['users'].get(uid)
+    if not u:
+        return jsonify({'error':'User not found'}), 404
+    return jsonify({'user':{'id':uid,'name':u['name'],'email':u['email'],'role':u.get('role','Member')}})
 
 @app.route('/api/auth/profile', methods=['PUT'])
-def auth_update_profile():
-    uid, udata = extract_user()
+def update_profile():
+    uid = get_uid()
     if not uid:
-        return jsonify({'error': 'Not authenticated'}), 401
-    body = request.json or {}
-    if 'name' in body and body['name'].strip():
-        udata['name'] = body['name'].strip()
-    if 'role' in body:
-        udata['role'] = body['role'].strip()
-    if 'email' in body and body['email'].strip():
-        udata['email'] = body['email'].strip().lower()
-    save_user(uid, udata)
-    return jsonify({
-        'user': {
-            'id': uid, 'name': udata['name'],
-            'email': udata['email'],
-            'role': udata.get('role', 'Member')
-        }
-    })
+        return jsonify({'error':'Not authenticated'}), 401
+    db = load_db()
+    u = db['users'].get(uid)
+    if not u:
+        return jsonify({'error':'User not found'}), 404
+    b = request.json or {}
+    if b.get('name','').strip():
+        u['name'] = b['name'].strip()
+    if b.get('role') is not None:
+        u['role'] = b['role'].strip()
+    if b.get('email','').strip():
+        u['email'] = b['email'].strip().lower()
+    save_db(db)
+    return jsonify({'user':{'id':uid,'name':u['name'],'email':u['email'],'role':u.get('role','Member')}})
 
+# ── HELPERS ──────────────────────────────────────────
+def auth_user():
+    uid = get_uid()
+    if not uid:
+        return None, None
+    db = load_db()
+    ud = db['users'].get(uid)
+    return uid, ud
 
-# ── SETTINGS ────────────────────────────────
-@app.route('/api/settings', methods=['GET', 'PUT'])
-def api_settings():
-    uid, udata, err = require_auth()
-    if err:
-        return err
+def save_user(uid, ud):
+    db = load_db()
+    db['users'][uid] = ud
+    save_db(db)
+
+# ── SETTINGS ─────────────────────────────────────────
+@app.route('/api/settings', methods=['GET','PUT'])
+def settings():
+    uid, ud = auth_user()
+    if not uid:
+        return jsonify({'error':'Auth required'}), 401
     if request.method == 'PUT':
-        body = request.json or {}
-        for key, val in body.items():
-            if key in udata['settings']:
-                udata['settings'][key] = val
-        save_user(uid, udata)
-    return jsonify(udata['settings'])
+        b = request.json or {}
+        for k,v in b.items():
+            if k in ud['settings']:
+                ud['settings'][k] = v
+        save_user(uid, ud)
+    return jsonify(ud['settings'])
 
-
-# ── TASKS ───────────────────────────────────
-@app.route('/api/tasks', methods=['GET', 'POST'])
-def api_tasks():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
+# ── TASKS ─────────────────────────────────────────────
+@app.route('/api/tasks', methods=['GET','POST'])
+def tasks():
+    uid, ud = auth_user()
+    if not uid:
+        return jsonify({'error':'Auth required'}), 401
     if request.method == 'POST':
-        body = request.json or {}
-        priority = body.get('priority', 'medium')
-        default_reminders = {
-            'low': udata['settings'].get('default_reminder_low', 60),
-            'medium': udata['settings'].get('default_reminder_medium', 30),
-            'high': udata['settings'].get('default_reminder_high', 15)
-        }
-        timestamp = now_iso()
+        b = request.json or {}
+        pri = b.get('priority','medium')
+        dr = {'low':ud['settings'].get('default_reminder_low',60),
+              'medium':ud['settings'].get('default_reminder_medium',30),
+              'high':ud['settings'].get('default_reminder_high',15)}
+        ts = now()
         task = {
-            'id': next_id(udata, 'tasks'),
-            'title': body.get('title', 'Untitled'),
-            'description': body.get('description', ''),
-            'category': body.get('category', 'General'),
-            'priority': priority,
-            'status': body.get('status', 'pending'),
-            'due_date': body.get('due_date') or None,
-            'due_time': body.get('due_time') or None,
-            'reminder_mins': body.get('reminder_mins', default_reminders.get(priority, 30)),
-            'assigned_to': body.get('assigned_to', ''),
-            'project': body.get('project', ''),
-            'tags': json.dumps(body.get('tags', [])),
-            'notes': body.get('notes', ''),
-            'progress': body.get('progress', 0),
-            'is_pinned': 1 if body.get('is_pinned') else 0,
-            'created_at': timestamp,
-            'updated_at': timestamp,
-            'completed_at': None,
-            'reminder_sent': 0,
-            'snooze_until': None
+            'id':nxt(ud,'tasks'),'title':b.get('title','Untitled'),
+            'description':b.get('description',''),'category':b.get('category','General'),
+            'priority':pri,'status':b.get('status','pending'),
+            'due_date':b.get('due_date') or None,'due_time':b.get('due_time') or None,
+            'reminder_mins':b.get('reminder_mins', dr.get(pri,30)),
+            'assigned_to':b.get('assigned_to',''),'project':b.get('project',''),
+            'tags':json.dumps(b.get('tags',[])),'notes':b.get('notes',''),
+            'progress':b.get('progress',0),'is_pinned':1 if b.get('is_pinned') else 0,
+            'created_at':ts,'updated_at':ts,'completed_at':None,
+            'reminder_sent':0,'snooze_until':None
         }
-        udata['tasks'].insert(0, task)
-        generate_notifications(udata)
-        save_user(uid, udata)
+        ud['tasks'].insert(0, task)
+        run_notifs(ud)
+        save_user(uid, ud)
         return jsonify(task), 201
+    tl = list(ud['tasks'])
+    for arg in ['status','priority','category']:
+        v = request.args.get(arg,'')
+        if v: tl = [t for t in tl if t.get(arg)==v]
+    q = request.args.get('search','').lower()
+    if q: tl = [t for t in tl if q in (t.get('title','') or '').lower() or q in (t.get('description','') or '').lower()]
+    tl.sort(key=lambda t: t.get('is_pinned',0), reverse=True)
+    return jsonify(tl)
 
-    # GET with filters
-    task_list = list(udata['tasks'])
-    status_filter = request.args.get('status', '')
-    priority_filter = request.args.get('priority', '')
-    category_filter = request.args.get('category', '')
-    search_query = request.args.get('search', '').lower()
-
-    if status_filter:
-        task_list = [t for t in task_list if t.get('status') == status_filter]
-    if priority_filter:
-        task_list = [t for t in task_list if t.get('priority') == priority_filter]
-    if category_filter:
-        task_list = [t for t in task_list if t.get('category') == category_filter]
-    if search_query:
-        task_list = [
-            t for t in task_list
-            if search_query in (t.get('title', '') or '').lower()
-            or search_query in (t.get('description', '') or '').lower()
-        ]
-
-    task_list.sort(key=lambda t: t.get('is_pinned', 0), reverse=True)
-    return jsonify(task_list)
-
-
-@app.route('/api/tasks/<int:task_id>', methods=['GET', 'PUT', 'DELETE'])
-def api_single_task(task_id):
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    task = next((t for t in udata['tasks'] if t['id'] == task_id), None)
-    if not task:
-        return jsonify({'error': 'Task not found'}), 404
-
+@app.route('/api/tasks/<int:tid>', methods=['GET','PUT','DELETE'])
+def task(tid):
+    uid, ud = auth_user()
+    if not uid:
+        return jsonify({'error':'Auth required'}), 401
+    t = next((x for x in ud['tasks'] if x['id']==tid), None)
+    if not t:
+        return jsonify({'error':'Not found'}), 404
     if request.method == 'GET':
-        return jsonify(task)
-
+        return jsonify(t)
     if request.method == 'DELETE':
-        udata['tasks'] = [t for t in udata['tasks'] if t['id'] != task_id]
-        udata['notifications'] = [
-            n for n in udata.get('notifications', [])
-            if n.get('task_id') != task_id
-        ]
-        save_user(uid, udata)
-        return jsonify({'ok': True})
+        ud['tasks'] = [x for x in ud['tasks'] if x['id']!=tid]
+        ud['notifications'] = [n for n in ud.get('notifications',[]) if n.get('task_id')!=tid]
+        save_user(uid, ud)
+        return jsonify({'ok':True})
+    b = request.json or {}
+    old_st = t['status']
+    for k in ['title','description','category','priority','status','due_date','due_time',
+              'reminder_mins','assigned_to','project','notes','progress','is_pinned','snooze_until']:
+        if k in b: t[k] = b[k]
+    if 'tags' in b:
+        t['tags'] = json.dumps(b['tags']) if isinstance(b['tags'],list) else b['tags']
+    t['updated_at'] = now()
+    ns = t['status']
+    if ns == 'completed' and old_st != 'completed': t['completed_at'] = now()
+    elif ns != 'completed': t['completed_at'] = None
+    if 'due_date' in b or 'due_time' in b: t['reminder_sent'] = 0
+    run_notifs(ud)
+    save_user(uid, ud)
+    return jsonify(t)
 
-    # PUT - update task
-    body = request.json or {}
-    old_status = task['status']
+@app.route('/api/tasks/<int:tid>/snooze', methods=['PUT'])
+def snooze(tid):
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    mins = (request.json or {}).get('minutes', 10)
+    su = (datetime.now() + timedelta(minutes=mins)).isoformat()
+    for t in ud['tasks']:
+        if t['id'] == tid:
+            t['snooze_until'] = su; t['reminder_sent'] = 0; break
+    ud['notifications'] = [n for n in ud.get('notifications',[])
+                           if not (n.get('task_id')==tid and n.get('type')=='reminder')]
+    save_user(uid, ud)
+    return jsonify({'ok':True})
 
-    updatable_fields = [
-        'title', 'description', 'category', 'priority', 'status',
-        'due_date', 'due_time', 'reminder_mins', 'assigned_to',
-        'project', 'notes', 'progress', 'is_pinned', 'snooze_until'
-    ]
-    for field in updatable_fields:
-        if field in body:
-            task[field] = body[field]
+@app.route('/api/tasks/<int:tid>/pin', methods=['PUT'])
+def pin(tid):
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    for t in ud['tasks']:
+        if t['id'] == tid:
+            t['is_pinned'] = 0 if t.get('is_pinned') else 1
+            save_user(uid, ud)
+            return jsonify({'is_pinned':t['is_pinned']})
+    return jsonify({'error':'Not found'}), 404
 
-    if 'tags' in body:
-        if isinstance(body['tags'], list):
-            task['tags'] = json.dumps(body['tags'])
-        else:
-            task['tags'] = body['tags']
-
-    task['updated_at'] = now_iso()
-    new_status = task['status']
-
-    if new_status == 'completed' and old_status != 'completed':
-        task['completed_at'] = now_iso()
-    elif new_status != 'completed':
-        task['completed_at'] = None
-
-    if 'due_date' in body or 'due_time' in body:
-        task['reminder_sent'] = 0
-
-    generate_notifications(udata)
-    save_user(uid, udata)
-    return jsonify(task)
-
-
-@app.route('/api/tasks/<int:task_id>/snooze', methods=['PUT'])
-def api_snooze_task(task_id):
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    minutes = (request.json or {}).get('minutes', 10)
-    snooze_until = (datetime.now() + timedelta(minutes=minutes)).isoformat()
-
-    for task in udata['tasks']:
-        if task['id'] == task_id:
-            task['snooze_until'] = snooze_until
-            task['reminder_sent'] = 0
-            break
-
-    udata['notifications'] = [
-        n for n in udata.get('notifications', [])
-        if not (n.get('task_id') == task_id and n.get('type') == 'reminder')
-    ]
-    save_user(uid, udata)
-    return jsonify({'ok': True, 'snoozed_until': snooze_until})
-
-
-@app.route('/api/tasks/<int:task_id>/pin', methods=['PUT'])
-def api_pin_task(task_id):
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    for task in udata['tasks']:
-        if task['id'] == task_id:
-            task['is_pinned'] = 0 if task.get('is_pinned') else 1
-            save_user(uid, udata)
-            return jsonify({'is_pinned': task['is_pinned']})
-
-    return jsonify({'error': 'Task not found'}), 404
-
-
-# ── CATEGORIES ──────────────────────────────
-@app.route('/api/categories', methods=['GET', 'POST'])
-def api_categories():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
+# ── CATEGORIES ────────────────────────────────────────
+@app.route('/api/categories', methods=['GET','POST'])
+def categories():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
     if request.method == 'POST':
-        body = request.json or {}
-        name = body.get('name', '').strip()
-        if not name:
-            return jsonify({'error': 'Name required'}), 400
-        if any(c['name'] == name for c in udata['categories']):
-            return jsonify({'error': 'Category already exists'}), 400
-        cat = {
-            'id': next_id(udata, 'categories'),
-            'name': name,
-            'color': body.get('color', '#6366f1')
-        }
-        udata['categories'].append(cat)
-        save_user(uid, udata)
+        b = request.json or {}
+        name = b.get('name','').strip()
+        if not name: return jsonify({'error':'Name required'}), 400
+        if any(c['name']==name for c in ud['categories']):
+            return jsonify({'error':'Already exists'}), 400
+        cat = {'id':nxt(ud,'categories'),'name':name,'color':b.get('color','#6366f1')}
+        ud['categories'].append(cat)
+        save_user(uid, ud)
         return jsonify(cat), 201
+    return jsonify(ud['categories'])
 
-    return jsonify(udata['categories'])
+@app.route('/api/categories/<int:cid>', methods=['DELETE'])
+def del_cat(cid):
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    ud['categories'] = [c for c in ud['categories'] if c['id']!=cid]
+    save_user(uid, ud)
+    return jsonify({'ok':True})
 
+# ── NOTIFICATIONS ─────────────────────────────────────
+@app.route('/api/notifications')
+def notifs():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    run_notifs(ud); save_user(uid, ud)
+    ns = [n for n in ud.get('notifications',[]) if not n.get('is_dismissed')]
+    po = {'high':0,'medium':1,'low':2}
+    ns.sort(key=lambda n: po.get(n.get('priority','medium'),1))
+    return jsonify(ns)
 
-@app.route('/api/categories/<int:cat_id>', methods=['DELETE'])
-def api_delete_category(cat_id):
-    uid, udata, err = require_auth()
-    if err:
-        return err
-    udata['categories'] = [c for c in udata['categories'] if c['id'] != cat_id]
-    save_user(uid, udata)
-    return jsonify({'ok': True})
+@app.route('/api/notifications/new')
+def notifs_new():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    run_notifs(ud); save_user(uid, ud)
+    ns = [n for n in ud.get('notifications',[])
+          if not n.get('is_read') and not n.get('is_dismissed') and n.get('type')!='created']
+    po = {'high':0,'medium':1,'low':2}
+    ns.sort(key=lambda n: po.get(n.get('priority','medium'),1))
+    return jsonify(ns)
 
-
-# ── NOTIFICATIONS ───────────────────────────
-@app.route('/api/notifications', methods=['GET'])
-def api_notifications():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    generate_notifications(udata)
-    save_user(uid, udata)
-
-    notif_list = [
-        n for n in udata.get('notifications', [])
-        if not n.get('is_dismissed')
-    ]
-    priority_order = {'high': 0, 'medium': 1, 'low': 2}
-    notif_list.sort(
-        key=lambda n: priority_order.get(n.get('priority', 'medium'), 1)
-    )
-    return jsonify(notif_list)
-
-
-@app.route('/api/notifications/new', methods=['GET'])
-def api_new_notifications():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    generate_notifications(udata)
-    save_user(uid, udata)
-
-    notif_list = [
-        n for n in udata.get('notifications', [])
-        if not n.get('is_read')
-        and not n.get('is_dismissed')
-        and n.get('type') != 'created'
-    ]
-    priority_order = {'high': 0, 'medium': 1, 'low': 2}
-    notif_list.sort(
-        key=lambda n: priority_order.get(n.get('priority', 'medium'), 1)
-    )
-    return jsonify(notif_list)
-
-
-@app.route('/api/notifications/<int:notif_id>/read', methods=['PUT'])
-def api_read_notification(notif_id):
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    for notif in udata.get('notifications', []):
-        if notif['id'] == notif_id:
-            notif['is_read'] = 1
-            break
-    save_user(uid, udata)
-    return jsonify({'ok': True})
-
+@app.route('/api/notifications/<int:nid>/read', methods=['PUT'])
+def read_notif(nid):
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    for n in ud.get('notifications',[]):
+        if n['id'] == nid: n['is_read'] = 1; break
+    save_user(uid, ud)
+    return jsonify({'ok':True})
 
 @app.route('/api/notifications/read-all', methods=['PUT'])
-def api_read_all_notifications():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    for notif in udata.get('notifications', []):
-        notif['is_read'] = 1
-    save_user(uid, udata)
-    return jsonify({'ok': True})
-
+def read_all():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    for n in ud.get('notifications',[]): n['is_read'] = 1
+    save_user(uid, ud)
+    return jsonify({'ok':True})
 
 @app.route('/api/notifications/clear-read', methods=['DELETE'])
-def api_clear_read_notifications():
-    uid, udata, err = require_auth()
-    if err:
-        return err
+def clear_read():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    ud['notifications'] = [n for n in ud.get('notifications',[]) if not n.get('is_read')]
+    save_user(uid, ud)
+    return jsonify({'ok':True})
 
-    udata['notifications'] = [
-        n for n in udata.get('notifications', [])
-        if not n.get('is_read')
-    ]
-    save_user(uid, udata)
-    return jsonify({'ok': True})
+# ── STATS ─────────────────────────────────────────────
+@app.route('/api/statistics')
+def stats():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    tl = ud.get('tasks',[])
+    td = datetime.now().strftime('%Y-%m-%d')
+    total = len(tl)
+    comp = sum(1 for t in tl if t.get('status')=='completed')
+    pend = sum(1 for t in tl if t.get('status')=='pending')
+    prog = sum(1 for t in tl if t.get('status')=='in_progress')
+    ov = sum(1 for t in tl if t.get('status')!='completed' and t.get('due_date') and t.get('due_date','')<td)
+    dt = sum(1 for t in tl if t.get('status')!='completed' and t.get('due_date')==td)
+    hp = sum(1 for t in tl if t.get('priority')=='high' and t.get('status')!='completed')
+    return jsonify({'total':total,'completed':comp,'pending':pend,'in_progress':prog,
+                    'overdue':ov,'due_today':dt,'high_priority':hp,
+                    'completion_rate':round(comp/total*100,1) if total>0 else 0})
 
-
-# ── STATISTICS ──────────────────────────────
-@app.route('/api/statistics', methods=['GET'])
-def api_statistics():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    task_list = udata.get('tasks', [])
-    today = datetime.now().strftime('%Y-%m-%d')
-    total = len(task_list)
-    completed = sum(1 for t in task_list if t.get('status') == 'completed')
-    pending = sum(1 for t in task_list if t.get('status') == 'pending')
-    in_progress = sum(1 for t in task_list if t.get('status') == 'in_progress')
-    overdue = sum(
-        1 for t in task_list
-        if t.get('status') != 'completed'
-        and t.get('due_date')
-        and t.get('due_date', '') < today
-    )
-    due_today = sum(
-        1 for t in task_list
-        if t.get('status') != 'completed'
-        and t.get('due_date') == today
-    )
-    high_priority = sum(
-        1 for t in task_list
-        if t.get('priority') == 'high'
-        and t.get('status') != 'completed'
-    )
-
-    return jsonify({
-        'total': total,
-        'completed': completed,
-        'pending': pending,
-        'in_progress': in_progress,
-        'overdue': overdue,
-        'due_today': due_today,
-        'high_priority': high_priority,
-        'completion_rate': round(
-            completed / total * 100, 1
-        ) if total > 0 else 0
-    })
-
-
-# ── EXPORT / IMPORT ─────────────────────────
-@app.route('/api/export', methods=['GET'])
-def api_export():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-    return jsonify({
-        'exported_at': now_iso(),
-        'tasks': udata.get('tasks', []),
-        'categories': udata.get('categories', [])
-    })
-
+# ── EXPORT/IMPORT ─────────────────────────────────────
+@app.route('/api/export')
+def export():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    return jsonify({'exported_at':now(),'tasks':ud.get('tasks',[]),'categories':ud.get('categories',[])})
 
 @app.route('/api/import', methods=['POST'])
-def api_import():
-    uid, udata, err = require_auth()
-    if err:
-        return err
-
-    incoming = (request.json or {}).get('tasks', [])
-    timestamp = now_iso()
-    count = 0
-
-    for t in incoming:
-        task = {
-            'id': next_id(udata, 'tasks'),
-            'title': t.get('title', 'Imported'),
-            'description': t.get('description', ''),
-            'category': t.get('category', 'General'),
-            'priority': t.get('priority', 'medium'),
-            'status': t.get('status', 'pending'),
-            'due_date': t.get('due_date'),
-            'due_time': t.get('due_time'),
-            'reminder_mins': t.get('reminder_mins', 30),
-            'assigned_to': t.get('assigned_to', ''),
-            'project': t.get('project', ''),
-            'tags': json.dumps(t.get('tags', [])),
-            'notes': t.get('notes', ''),
-            'created_at': timestamp,
-            'updated_at': timestamp,
-            'completed_at': None,
-            'reminder_sent': 0,
-            'is_pinned': 0,
-            'progress': 0,
-            'snooze_until': None
-        }
-        udata['tasks'].insert(0, task)
+def import_data():
+    uid, ud = auth_user()
+    if not uid: return jsonify({'error':'Auth required'}), 401
+    inc = (request.json or {}).get('tasks',[])
+    ts = now(); count = 0
+    for t in inc:
+        ud['tasks'].insert(0, {
+            'id':nxt(ud,'tasks'),'title':t.get('title','Imported'),
+            'description':t.get('description',''),'category':t.get('category','General'),
+            'priority':t.get('priority','medium'),'status':t.get('status','pending'),
+            'due_date':t.get('due_date'),'due_time':t.get('due_time'),
+            'reminder_mins':t.get('reminder_mins',30),'assigned_to':t.get('assigned_to',''),
+            'project':t.get('project',''),'tags':json.dumps(t.get('tags',[])),
+            'notes':t.get('notes',''),'created_at':ts,'updated_at':ts,
+            'completed_at':None,'reminder_sent':0,'is_pinned':0,'progress':0,'snooze_until':None
+        })
         count += 1
+    save_user(uid, ud)
+    return jsonify({'imported':count})
 
-    save_user(uid, udata)
-    return jsonify({'imported': count})
-
-
-# ── HEALTH ──────────────────────────────────
-@app.route('/api/health', methods=['GET'])
-def api_health():
-    return jsonify({
-        'status': 'ok',
-        'time': now_iso(),
-        'version': '3.0'
-    })
+@app.route('/api/health')
+def health():
+    return jsonify({'status':'ok','time':now()})
